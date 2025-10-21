@@ -1,5 +1,4 @@
-# Mapro - Solar Projects Mapping Application
-
+# Mapro - By Open House
 ## Overview
 A standalone interactive map product for showcasing solar energy projects, with admin editing capabilities. Built with React, Mapbox GL JS, and Supabase.
 
