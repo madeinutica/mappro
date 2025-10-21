@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapro Solar Projects Map</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 20px;
+        }
+        h1 {
+            color: #2c5530;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .map-container {
+            margin: 20px 0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Solar Projects Map</h1>
+
+        <!-- Example 1: General public map (shows all published projects) -->
+        <h2>All Published Projects</h2>
+        <div id="map-container-1" class="map-container"></div>
+
+        <!-- Example 2: Client-specific map (shows only projects for a specific client) -->
+        <h2>New York Sash Projects</h2>
+        <div id="map-container-2" class="map-container"></div>
+
+        <div style="margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 8px;">
+            <h3>Embed Instructions</h3>
+            <p>To embed this map on your website, include the following code:</p>
+            <pre style="background: #e9ecef; padding: 15px; border-radius: 4px; overflow-x: auto;"><code>&lt;!-- Include the Mapro embed script --&gt;
+&lt;script src="https://your-domain.com/mapro-embed.js"&gt;&lt;/script&gt;
+
+&lt;!-- Create a container for the map --&gt;
+&lt;div id="my-map" style="height: 500px;"&gt;&lt;/div&gt;
+
+&lt;!-- Initialize the map --&gt;
+&lt;script&gt;
+  createMaproMap('my-map', {
+    height: '500px',
+    showHeader: true,
+    clientId: 'your-client-id' // Optional: filter by specific client
+  });
+&lt;/script&gt;</code></pre>
+        </div>
+    </div>
+
+    <!-- Include the Mapro embed script -->
+    <script src="./mapro-embed.js"></script>
+
+    <script>
+        // Initialize maps when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            // Map 1: All published projects
+            createMaproMap('map-container-1', {
+                height: '400px',
+                showHeader: true
+            });
+
+            // Map 2: Client-specific (replace with actual client ID)
+            createMaproMap('map-container-2', {
+                height: '400px',
+                showHeader: true,
+                clientId: '550e8400-e29b-41d4-a716-446655440000' // Example client ID
+            });
+        });
+    </script>
+</body>
+</html>

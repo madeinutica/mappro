@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapro Interactive Solar Map</title>
+    <link href='https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css' rel='stylesheet' />
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        #map {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 100%;
+        }
+
+        .map-container {
+            position: relative;
+            width: 100%;
+            height: 500px; /* Default height, can be customized */
+        }
+
+        .map-header {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            z-index: 1;
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .mapboxgl-popup-content {
+            font-family: inherit;
+            max-width: 300px;
+        }
+
+        .project-popup h3 {
+            margin: 0 0 8px 0;
+            color: #2c5530;
+            font-size: 16px;
+        }
+
+        .project-popup p {
+            margin: 4px 0;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .project-popup strong {
+            color: #555;
+        }
+
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            z-index: 2;
+        }
+
+        .mapro-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.75);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .mapro-modal-content {
+            position: relative;
+            max-width: 90vw;
+            max-height: 90vh;
+            padding: 16px;
+        }
+
+        .mapro-modal img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        .mapro-modal-close {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(0, 0, 0, 0.5);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <div class="map-container">
+        <div class="map-header">Mapro Solar Projects Map</div>
+        <div id="map"></div>
+    </div>
+
+    <script src='https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js'></script>
+    <script src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2'></script>
+
+    <script>
+        // Configuration
+        const MAPBOX_TOKEN = 'pk.eyJ1IjoiZWZsb3JlenNhc2giLCJhIjoiY21mcHJkYjR5MGo0cjJtb2xoZjd4Zmd2ZyJ9.mu2PN6vioX71RvV5J-HhWA';
+        const SUPABASE_URL = 'https://fvrueabzpinhlzyrnhne.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ2cnVlYWJ6cGluaGx6eXJuaG5lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA5NzgxODIsImV4cCI6MjA3NjU1NDE4Mn0.kg6y-vsG7MZAnCk-15LkIK8HUcnQD5rACzDT2x05Y1w';
+
+        // Initialize Supabase
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // Initialize map
+        mapboxgl.accessToken = MAPBOX_TOKEN;
+        const map = new mapboxgl.Map({
+            container: 'map',
+            style: 'mapbox://styles/mapbox/light-v11',
+            center: [-75.5, 42.7], // Center of New York State
+            zoom: 7
+        });
+
+        let projects = [];
+        let markers = [];
+
+        // Show loading
+        const loadingDiv = document.createElement('div');
+        loadingDiv.className = 'loading';
+        loadingDiv.textContent = 'Loading solar projects...';
+        document.querySelector('.map-container').appendChild(loadingDiv);
+
+        // Fetch projects from Supabase
+        async function fetchProjects() {
+            try {
+                const { data, error } = await supabase
+                    .from('projects')
+                    .select('*');
+
+                if (error) {
+                    throw error;
+                }
+
+                projects = data || [];
+                console.log('Loaded projects:', projects.length);
+
+                // Remove loading, add markers
+                loadingDiv.remove();
+                addProjectMarkers();
+
+            } catch (error) {
+                console.error('Error fetching projects:', error);
+                loadingDiv.remove();
+
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'error';
+                errorDiv.innerHTML = `
+                    <strong>Error loading map data</strong><br>
+                    Please try again later.
+                `;
+                document.querySelector('.map-container').appendChild(errorDiv);
+            }
+        }
+
+        // Add project markers to map
+        function addProjectMarkers() {
+            projects.forEach(project => {
+                if (!project.lat || !project.lng) {
+                    console.warn('Project missing coordinates:', project.name);
+                    return;
+                }
+
+                // Create marker element
+                const el = document.createElement('div');
+                el.style.background = '#2c5530'; // Green color for solar
+                el.style.width = '24px';
+                el.style.height = '24px';
+                el.style.borderRadius = '50%';
+                el.style.boxShadow = '0 0 4px rgba(0,0,0,0.2)';
+                el.style.border = '3px solid #fff';
+                el.style.cursor = 'pointer';
+                el.style.transition = 'transform 0.2s';
+
+                // Hover effect
+                el.addEventListener('mouseenter', () => {
+                    el.style.transform = 'scale(1.2)';
+                });
+                el.addEventListener('mouseleave', () => {
+                    el.style.transform = 'scale(1)';
+                });
+
+                // Format categories for display
+                const formatCategories = (project) => {
+                    const categories = [];
+                    if (project['category 1']) categories.push(`${project['category 1']}${project['sub category 1'] ? ` (${project['sub category 1']})` : ''}`);
+                    if (project['category 2']) categories.push(`${project['category 2']}${project['sub category 2'] ? ` (${project['sub category 2']})` : ''}`);
+                    if (project['category 3']) categories.push(`${project['category 3']}${project['sub category 3'] ? ` (${project['sub category 3']})` : ''}`);
+                    return categories.length > 0 ? categories.join(', ') : '';
+                };
+
+                // Format address from separate fields
+                const formatAddress = (project) => {
+                    const parts = [];
+                    if (project.street) parts.push(project.street);
+                    if (project.city) parts.push(project.city);
+                    if (project.state) parts.push(project.state);
+                    if (project.zip) parts.push(project.zip);
+                    return parts.length > 0 ? parts.join(', ') : (project.address || 'N/A');
+                };
+
+                const categoriesText = formatCategories(project);
+
+                // Create popup content
+                const popupContent = `
+                    <div class="project-popup">
+                        <h3>${project.name}</h3>
+                        ${project.customer ? `<p><strong>Client:</strong> ${project.customer}</p>` : ''}
+                        ${project.project_type ? `<p><strong>Project Type:</strong> ${project.project_type}</p>` : ''}
+                        ${project['category 1'] ? `<p><strong>Category 1:</strong> ${project['category 1']}</p>` : ''}
+                        ${project['sub category 1'] ? `<p><strong>Sub Category 1:</strong> ${project['sub category 1']}</p>` : ''}
+                        ${project['category 2'] ? `<p><strong>Category 2:</strong> ${project['category 2']}</p>` : ''}
+                        ${project['sub category 2'] ? `<p><strong>Sub Category 2:</strong> ${project['sub category 2']}</p>` : ''}
+                        ${project['category 3'] ? `<p><strong>Category 3:</strong> ${project['category 3']}</p>` : ''}
+                        ${project['sub category 3'] ? `<p><strong>Sub Category 3:</strong> ${project['sub category 3']}</p>` : ''}
+                        ${formatAddress(project) !== 'N/A' ? `<p><strong>Address:</strong> ${formatAddress(project)}</p>` : ''}
+                        ${project.description ? `<p style="margin: 8px 0; color: #666;">${project.description}</p>` : ''}
+
+                        ${(project.after_photo || project.before_photo) ? `
+                            <div style="margin: 8px 0;">
+                                <div style="position: relative; overflow: hidden; border-radius: 4px;">
+                                    <div style="display: flex; transition: transform 0.3s ease;" id="photo-slider-${project.id}">
+                                        ${project.after_photo ? `<div style="width: 100%; height: 120px; background: #f5f5f5; display: flex; align-items: center; justify-content: center; color: #666; font-size: 12px;" data-image-src="${project.after_photo}" data-image-type="after">Loading image...</div>` : ''}
+                                        ${project.before_photo ? `<div style="width: 100%; height: 120px; background: #f5f5f5; display: flex; align-items: center; justify-content: center; color: #666; font-size: 12px;" data-image-src="${project.before_photo}" data-image-type="before">Loading image...</div>` : ''}
+                                    </div>
+                                    <div style="position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); display: flex; gap: 4px;">
+                                        ${project.after_photo ? `<button style="width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.5); border: none; cursor: pointer;" class="photo-dot active" data-slide="0"></button>` : ''}
+                                        ${project.before_photo ? `<button style="width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.5); border: none; cursor: pointer;" class="photo-dot${!project.after_photo ? ' active' : ''}" data-slide="${project.after_photo ? '1' : '0'}"></button>` : ''}
+                                    </div>
+                                    <div style="position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.5); color: white; padding: 2px 6px; border-radius: 2px; font-size: 10px;">
+                                        ${project.after_photo ? 'After' : 'Before'}
+                                    </div>
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+
+                // Create marker
+                const marker = new mapboxgl.Marker({ element: el })
+                    .setLngLat([parseFloat(project.lng), parseFloat(project.lat)])
+                    .setPopup(
+                        new mapboxgl.Popup({ offset: 25 })
+                            .setHTML(popupContent)
+                            .on('open', function() {
+                                // Add slider functionality
+                                const slider = document.getElementById(`photo-slider-${project.id}`);
+                                if (slider) {
+                                    const sliderContainer = slider.closest('div[style*="position: relative"]');
+
+                                    // Reset slider to first slide
+                                    slider.style.transform = 'translateX(0%)';
+
+                                    // Dynamically create images from data URLs
+                                    const imageContainers = slider.querySelectorAll('[data-image-src]');
+                                    imageContainers.forEach(container => {
+                                        const imageSrc = container.getAttribute('data-image-src');
+                                        const imageType = container.getAttribute('data-image-type');
+
+                                        if (imageSrc) {
+                                            const img = document.createElement('img');
+                                            img.src = imageSrc;
+                                            img.alt = imageType === 'after' ? 'After' : 'Before';
+                                            img.style.width = '100%';
+                                            img.style.height = '120px';
+                                            img.style.objectFit = 'cover';
+                                            img.style.flexShrink = '0';
+                                            img.style.cursor = 'pointer';
+                                            img.onclick = function() {
+                                                // Create modal
+                                                const modal = document.createElement('div');
+                                                modal.className = 'mapro-modal';
+                                                modal.onclick = function() {
+                                                    document.body.removeChild(modal);
+                                                };
+
+                                                const modalContent = document.createElement('div');
+                                                modalContent.className = 'mapro-modal-content';
+                                                modalContent.onclick = function(e) {
+                                                    e.stopPropagation();
+                                                };
+
+                                                const modalImg = document.createElement('img');
+                                                modalImg.src = imageSrc;
+                                                modalImg.alt = `${project.name} - ${imageType === 'after' ? 'After' : 'Before'}`;
+
+                                                const closeBtn = document.createElement('button');
+                                                closeBtn.className = 'mapro-modal-close';
+                                                closeBtn.textContent = '×';
+                                                closeBtn.onclick = function() {
+                                                    document.body.removeChild(modal);
+                                                };
+
+                                                modalContent.appendChild(modalImg);
+                                                modalContent.appendChild(closeBtn);
+                                                modal.appendChild(modalContent);
+                                                document.body.appendChild(modal);
+                                            };
+                                            img.onload = () => {
+                                                // Replace the loading container with the actual image
+                                                container.parentNode.replaceChild(img, container);
+                                            };
+                                            img.onerror = () => {
+                                                container.textContent = 'Image failed to load';
+                                                container.style.background = '#f5f5f5';
+                                                container.style.display = 'flex';
+                                                container.style.alignItems = 'center';
+                                                container.style.justifyContent = 'center';
+                                                container.style.color = '#666';
+                                                container.style.fontSize = '12px';
+                                            };
+                                        }
+                                    });
+
+                                    const dots = sliderContainer.querySelectorAll('.photo-dot');
+                                    const label = sliderContainer.querySelector('div[style*="position: absolute"][style*="top: 8px"]');
+
+                                    dots.forEach((dot) => {
+                                        dot.addEventListener('click', function() {
+                                            const slideIndex = parseInt(this.getAttribute('data-slide'));
+                                            slider.style.transform = `translateX(-${slideIndex * 100}%)`;
+                                            dots.forEach(d => d.classList.remove('active'));
+                                            this.classList.add('active');
+                                            if (label) {
+                                                if (slideIndex === 0) {
+                                                    label.textContent = project.after_photo ? 'After' : 'Before';
+                                                } else {
+                                                    label.textContent = 'Before';
+                                                }
+                                            }
+                                        });
+                                    });
+                                }
+                            })
+                    )
+                    .addTo(map);
+
+                markers.push(marker);
+            });
+
+            // Fit map to show all markers
+            if (projects.length > 0) {
+                const bounds = new mapboxgl.LngLatBounds();
+
+                projects.forEach(project => {
+                    if (project.lng && project.lat) {
+                        bounds.extend([parseFloat(project.lng), parseFloat(project.lat)]);
+                    }
+                });
+
+                map.fitBounds(bounds, {
+                    padding: 50,
+                    maxZoom: 12
+                });
+            }
+        }
+
+        // Initialize when map loads
+        map.on('load', () => {
+            fetchProjects();
+        });
+
+        // Handle map resize for responsive containers
+        window.addEventListener('resize', () => {
+            map.resize();
+        });
+    </script>
+</body>
+</html>

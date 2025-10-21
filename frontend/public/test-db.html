@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Database Test</title>
+</head>
+<body>
+    <h1>Database Connection Test</h1>
+    <div id="result"></div>
+
+    <script type="module">
+        import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+        const supabase = createClient(
+            'https://fvrueabzpinhlzyrnhne.supabase.co',
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ2cnVlYWJ6cGluaGx6eXJuaG5lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA5NzgxODIsImV4cCI6MjA3NjU1NDE4Mn0.kg6y-vsG7MZAnCk-15LkIK8HUcnQD5rACzDT2x05Y1w'
+        );
+
+        async function testConnection() {
+            const result = document.getElementById('result');
+
+            try {
+                result.innerHTML = 'Testing connection...';
+
+                const { data, error } = await supabase.from('projects').select('*');
+
+                if (error) {
+                    result.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+                    return;
+                }
+
+                result.innerHTML = `
+                    <p style="color: green;">✅ Connection successful!</p>
+                    <p>Found ${data.length} projects:</p>
+                    <ul>
+                        ${data.map(p => `<li>${p.name} (${p.customer})</li>`).join('')}
+                    </ul>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+
+            } catch (err) {
+                result.innerHTML = `<p style="color: red;">Connection failed: ${err.message}</p>`;
+            }
+        }
+
+        testConnection();
+    </script>
+</body>
+</html>

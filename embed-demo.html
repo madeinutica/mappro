@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Map Embed Demo</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #2c5530;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .demo-section {
+            margin-bottom: 40px;
+        }
+
+        .demo-section h2 {
+            color: #333;
+            border-bottom: 2px solid #2c5530;
+            padding-bottom: 10px;
+        }
+
+        .code-block {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            padding: 20px;
+            margin: 20px 0;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 14px;
+            overflow-x: auto;
+        }
+
+        .map-container {
+            border: 2px solid #2c5530;
+            border-radius: 8px;
+            padding: 10px;
+            margin: 20px 0;
+            background: #f9f9f9;
+        }
+
+        .note {
+            background: #e8f5e8;
+            border-left: 4px solid #2c5530;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+
+        .note strong {
+            color: #2c5530;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Mapro Solar Projects Map - Embed Demo</h1>
+
+        <div class="demo-section">
+            <h2>Embedded Map Example</h2>
+            <p>This demonstrates how to embed the Mapro solar projects map on any website using the embed script.</p>
+
+            <div class="map-container">
+                <div id="my-map"></div>
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h2>How to Use</h2>
+
+            <h3>1. Include the Embed Script</h3>
+            <p>Add this script tag to your HTML page:</p>
+            <div class="code-block">
+&lt;script src="https://your-domain.com/mapro-embed.js"&gt;&lt;/script&gt;
+            </div>
+
+            <h3>2. Add a Container Element</h3>
+            <p>Add a div element where you want the map to appear:</p>
+            <div class="code-block">
+&lt;div id="my-map"&gt;&lt;/div&gt;
+            </div>
+
+            <h3>3. Initialize the Map</h3>
+            <p>Call the embed function when the page loads:</p>
+            <div class="code-block">
+&lt;script&gt;
+    // Basic usage
+    createMaproMap('my-map');
+
+    // With custom options
+    createMaproMap('my-map', {
+        height: '600px',
+        center: [-75.5, 42.7],
+        zoom: 8,
+        showHeader: false
+    });
+&lt;/script&gt;
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h2>Configuration Options</h2>
+            <div class="code-block">
+createMaproMap(containerId, options);
+
+// Options:
+{
+    height: '500px',        // Map container height
+    showHeader: false,      // Show/hide "Mapro Solar Projects" header (default: false)
+    center: [-75.5, 42.7],  // Initial map center [lng, lat]
+    zoom: 7                 // Initial zoom level
+}
+            </div>
+        </div>
+
+        <div class="note">
+            <strong>Note:</strong> Make sure to host the <code>mapro-embed.js</code> file on your web server and update the script src URL accordingly. The script requires internet access to load Mapbox GL JS and connect to the Supabase database.
+        </div>
+    </div>
+
+    <!-- Include the embed script -->
+    <script src="./mapro-embed.js"></script>
+
+    <!-- Initialize the map -->
+    <script>
+        // Initialize the demo map
+        createMaproMap('my-map', {
+            height: '500px',
+            center: [-75.5, 42.7],
+            zoom: 7,
+            showHeader: false
+        });
+    </script>
+</body>
+</html>
