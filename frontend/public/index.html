@@ -2,6 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <!-- Development-only CSP: allows connections to local dev server, Supabase, and Mapbox; permits data: images used in project photos -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' http://localhost:3000 http://localhost:7777 https://api.mapbox.com https://events.mapbox.com https://fvrueabzpinhlzyrnhne.supabase.co; script-src 'self' 'unsafe-eval' 'unsafe-inline'; worker-src blob:; style-src 'self' 'unsafe-inline' https://api.mapbox.com; img-src 'self' data: https://api.mapbox.com;" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Mapro Interactive Map</title>
   <link href='https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css' rel='stylesheet' />

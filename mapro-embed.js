@@ -5,8 +5,8 @@
     // Configuration
     const CONFIG = {
         MAPBOX_TOKEN: 'pk.eyJ1IjoiZWZsb3JlenNhc2giLCJhIjoiY21mcHJkYjR5MGo0cjJtb2xoZjd4Zmd2ZyJ9.mu2PN6vioX71RvV5J-HhWA',
-        SUPABASE_URL: 'https://fvrueabzpinhlzyrnhne.supabase.co',
-        SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ2cnVlYWJ6cGluaGx6eXJuaG5lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA5NzgxODIsImV4cCI6MjA3NjU1NDE4Mn0.kg6y-vsG7MZAnCk-15LkIK8HUcnQD5rACzDT2x05Y1w',
+        SUPABASE_URL: 'https://your-project.supabase.co',
+        SUPABASE_ANON_KEY: 'your-anon-key',
         DEFAULT_CENTER: [-75.5, 42.7],
         DEFAULT_ZOOM: 7
     };

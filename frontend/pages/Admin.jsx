@@ -11,13 +11,123 @@ const Admin = () => {
   const [originalProject, setOriginalProject] = useState(null);
   const [successMessage, setSuccessMessage] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  // ...existing code...
 
-  // Helper function to format address from separate fields
-  const formatAddress = (project) => {
-    const parts = [];
-    if (project.street) parts.push(project.street);
-    if (project.city) parts.push(project.city);
-    if (project.state) parts.push(project.state);
+  // Main render
+  return (
+    <div className="admin-page bg-gray-100 min-h-screen">
+      <div className="container mx-auto py-8">
+        <div className="flex gap-8">
+          {/* Sidebar */}
+          <aside className="w-64 bg-white rounded-xl shadow p-6 sticky top-8 h-fit self-start">
+            <h1 className="text-3xl font-bold text-blue-700 mb-6">Admin Panel</h1>
+            <input
+              type="text"
+              placeholder="Search projects..."
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              className="w-full px-3 py-2 mb-4 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <ul className="space-y-2">
+              {projects
+                .filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()))
+                .map(project => (
+                  <li key={project.id}>
+                    <button
+                      className={`w-full text-left px-4 py-2 rounded-lg font-medium transition-colors ${
+                        selected === project.id
+                          ? 'bg-blue-100 text-blue-700'
+                          : 'hover:bg-blue-50 text-gray-700'
+                      }`}
+                      onClick={() => handleSelect(project.id)}
+                    >
+                      {project.name}
+                    </button>
+                  </li>
+                ))}
+            </ul>
+          </aside>
+
+          {/* Main Content */}
+          <main className="flex-1">
+            {selected ? (
+              (() => {
+                const selectedProject = projects.find(p => p.id === selected);
+                if (!selectedProject) return <div className="text-gray-500">Project not found.</div>;
+                return (
+                  <div className="bg-white rounded-xl shadow p-8">
+                    <div className="flex items-center justify-between mb-8">
+                      <h2 className="text-2xl font-bold text-blue-700">Edit Project</h2>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={async () => {
+                            try {
+                              const testUpdate = { name: selectedProject.name + ' (TEST)' };
+                              await updateProject(selected, testUpdate);
+                              alert('Test update successful! Check console for details.');
+                            } catch (err) {
+                              alert('Test update failed: ' + err.message);
+                            }
+                          }}
+                          className="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700 text-sm"
+                        >
+                          Test Update
+                        </button>
+                        <button
+                          onClick={handlePublish}
+                          disabled={!hasUnsavedChanges || saving}
+                          className={`px-6 py-2 rounded-lg font-medium transition-colors ${
+                            hasUnsavedChanges && !saving
+                              ? 'bg-green-600 text-white hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2'
+                              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                          }`}
+                          title={hasUnsavedChanges ? 'Click to save your changes' : 'No changes to save'}
+                        >
+                          {saving ? (
+                            <span className="flex items-center gap-2">
+                              <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              </svg>
+                              Publishing...
+                            </span>
+                          ) : (
+                            'Publish Changes'
+                          )}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      {/* Basic Info */}
+                      <div className="space-y-6">
+                        {/* ...full basic info JSX here... */}
+                      </div>
+                      {/* Location & Photos */}
+                      <div className="space-y-6">
+                        {/* ...full location & photos JSX here... */}
+                      </div>
+                    </div>
+
+                    {/* Reviews Section */}
+                    <div className="mt-12">
+                      {/* ...full reviews JSX here... */}
+                    </div>
+
+                    {/* Preview */}
+                    <div className="mt-12">
+                      {/* ...full preview JSX here... */}
+                    </div>
+                  </div>
+                );
+              })()
+            ) : null}
+          </main>
+        </div>
+      </div>
+    </div>
+  );
+}
     if (project.zip) parts.push(project.zip);
     return parts.length > 0 ? parts.join(', ') : (project.address || 'No address');
   };
@@ -86,343 +196,8 @@ const Admin = () => {
 
       // Update local state
       setProjects((prev) =>
-        prev.map((p) =>
-          p.id === selected ? { ...p, [type]: dataUrl } : p
-        )
-      );
-
-      // Clear success message when user uploads photos
-      if (successMessage) setSuccessMessage('');
-
-      // Mark as having unsaved changes
-      setHasUnsavedChanges(true);
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handlePublish = async () => {
-    if (!selected || !hasUnsavedChanges) {
-      console.log('handlePublish: No selected project or no unsaved changes');
-      return;
-    }
-
-    console.log('handlePublish: Starting publish for project', selected);
-
-    try {
-      setSaving(true);
-      setError(null);
-
-      const currentProject = projects.find(p => p.id === selected);
-      if (!currentProject) {
-        console.log('handlePublish: Current project not found');
-        return;
-      }
-
-      // Get only the changed fields - more robust comparison
-      const changes = {};
-      Object.keys(currentProject).forEach(key => {
-        // Skip joined fields that aren't actual columns in the projects table
-        if (key === 'reviews' || key === 'photos') {
-          return;
-        }
-
-        const currentValue = currentProject[key];
-        const originalValue = originalProject[key];
-
-        // Handle different data types properly
-        if (key === 'lat' || key === 'lng') {
-          // Convert to numbers for comparison
-          const currentNum = parseFloat(currentValue);
-          const originalNum = parseFloat(originalValue);
-          if (!isNaN(currentNum) && !isNaN(originalNum) && currentNum !== originalNum) {
-            changes[key] = currentNum;
-          }
-        } else if (currentValue !== originalValue) {
-          changes[key] = currentValue;
-        }
-      });
-
-      // Remove id and timestamps from changes
-      delete changes.id;
-      delete changes.created_at;
-      delete changes.updated_at;
-
-      console.log('handlePublish: Original project:', originalProject);
-      console.log('handlePublish: Current project:', currentProject);
-      console.log('handlePublish: Changes to save:', changes);
-
-      if (Object.keys(changes).length > 0) {
-        await updateProject(selected, changes);
-        console.log('handlePublish: Update successful, refetching projects...');
-
-        // Refetch projects to ensure UI consistency
-        await fetchProjects();
-
-        setHasUnsavedChanges(false);
-        setSuccessMessage('Changes published successfully!');
-        // Clear success message after 3 seconds
-        setTimeout(() => setSuccessMessage(''), 3000);
-        console.log('handlePublish: Publish completed successfully');
-      } else {
-        console.log('handlePublish: No changes to save');
-      }
-    } catch (err) {
-      console.error('handlePublish: Error publishing changes:', err);
-      setError(`Failed to publish changes: ${err.message}`);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const selectedProject = projects.find((p) => p.id === selected);
-
-  // Filter projects based on search term
-  const filteredProjects = projects.filter((project) => {
-    if (!searchTerm) return true;
-
-    const searchLower = searchTerm.toLowerCase();
-    const searchableFields = [
-      project.name,
-      project.customer,
-      project.description,
-      project['category 1'],
-      project['category 2'],
-      project['category 3'],
-      project.street,
-      project.city,
-      project.state,
-      project.zip,
-      project.address,
-      project.project_type
-    ];
-
-    return searchableFields.some(field =>
-      field && field.toString().toLowerCase().includes(searchLower)
-    );
-  });
-
-  // Clear selection if selected project is filtered out
-  useEffect(() => {
-    if (selected && !filteredProjects.find(p => p.id === selected)) {
-      setSelected(null);
-      setOriginalProject(null);
-      setHasUnsavedChanges(false);
-      setSuccessMessage('');
-    }
-  }, [filteredProjects, selected]);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-center h-96">
-            <div className="text-lg">Loading projects...</div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gray-50 p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-center h-96">
-            <div className="text-red-600">Error: {error}</div>
-            <button
-              onClick={fetchProjects}
-              className="ml-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-            >
-              Retry
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Project Dashboard</h1>
-          <p className="text-gray-600">Manage your solar installation projects</p>
-          <div className="flex items-center gap-4 mt-4">
-            {saving && <div className="text-blue-600">Publishing...</div>}
-            {successMessage && (
-              <div className="text-green-600 flex items-center gap-2">
-                <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                {successMessage}
-              </div>
             )}
-            {hasUnsavedChanges && !saving && !successMessage && (
-              <div className="text-orange-600 flex items-center gap-2">
-                <span className="w-2 h-2 bg-orange-500 rounded-full"></span>
-                Unsaved changes
-              </div>
-            )}
-            {!hasUnsavedChanges && !saving && !successMessage && selected && (
-              <div className="text-green-600 flex items-center gap-2">
-                <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                All changes saved
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Project List */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Projects</h2>
-
-              {/* Search Field */}
-              <div className="mb-4">
-                <input
-                  type="text"
-                  placeholder="Search projects..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-                {searchTerm && (
-                  <div className="text-sm text-gray-500 mt-1">
-                    {filteredProjects.length} of {projects.length} projects
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                {filteredProjects.map((p) => (
-                  <button
-                    key={p.id}
-                    onClick={() => handleSelect(p.id)}
-                    className={`w-full text-left p-3 rounded-lg transition-colors ${
-                      selected === p.id
-                        ? 'bg-blue-50 border border-blue-200 text-blue-900'
-                        : 'hover:bg-gray-50 border border-gray-200 text-gray-700'
-                    }`}
-                  >
-                    <div className="font-medium">{p.name}</div>
-                    <div className="text-sm text-gray-500">{formatAddress(p)}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Project Details */}
-          <div className="lg:col-span-2">
-            {selected && selectedProject && (
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-semibold text-gray-900">Edit Project</h2>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={async () => {
-                        console.log('Test button clicked');
-                        try {
-                          const testUpdate = { name: selectedProject.name + ' (TEST)' };
-                          console.log('Testing update with:', testUpdate);
-                          await updateProject(selected, testUpdate);
-                          console.log('Test update successful');
-                          alert('Test update successful! Check console for details.');
-                        } catch (err) {
-                          console.error('Test update failed:', err);
-                          alert('Test update failed: ' + err.message);
-                        }
-                      }}
-                      className="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700 text-sm"
-                    >
-                      Test Update
-                    </button>
-                    <button
-                      onClick={handlePublish}
-                      disabled={!hasUnsavedChanges || saving}
-                      className={`px-6 py-2 rounded-lg font-medium transition-colors ${
-                        hasUnsavedChanges && !saving
-                          ? 'bg-green-600 text-white hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2'
-                          : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                      }`}
-                      title={hasUnsavedChanges ? 'Click to save your changes' : 'No changes to save'}
-                    >
-                      {saving ? (
-                        <span className="flex items-center gap-2">
-                          <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                          </svg>
-                          Publishing...
-                        </span>
-                      ) : (
-                        'Publish Changes'
-                      )}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Basic Info */}
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Project Name</label>
-                      <input
-                        type="text"
-                        name="name"
-                        value={selectedProject.name}
-                        onChange={handleChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Categories</label>
-                      <div className="space-y-3">
-                        <div className="grid grid-cols-2 gap-2">
-                          <input
-                            type="text"
-                            name="category 1"
-                            placeholder="Category 1"
-                            value={selectedProject['category 1'] || ''}
-                            onChange={handleChange}
-                            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          />
-                          <input
-                            type="text"
-                            name="sub category 1"
-                            placeholder="Sub Category 1"
-                            value={selectedProject['sub category 1'] || ''}
-                            onChange={handleChange}
-                            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          />
-                        </div>
-                        <div className="grid grid-cols-2 gap-2">
-                          <input
-                            type="text"
-                            name="category 2"
-                            placeholder="Category 2"
-                            value={selectedProject['category 2'] || ''}
-                            onChange={handleChange}
-                            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          />
-                          <input
-                            type="text"
-                            name="sub category 2"
-                            placeholder="Sub Category 2"
-                            value={selectedProject['sub category 2'] || ''}
-                            onChange={handleChange}
-                            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          />
-                        </div>
-                        <div className="grid grid-cols-2 gap-2">
-                          <input
-                            type="text"
-                            name="category 3"
-                            placeholder="Category 3"
-                            value={selectedProject['category 3'] || ''}
-                            onChange={handleChange}
-                            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          />
+          </main>
                           <input
                             type="text"
                             name="sub category 3"
@@ -477,7 +252,7 @@ const Admin = () => {
                   </div>
 
                   {/* Location & Photos */}
-                  <div className="space-y-4">
+                  <div className="space-y-6">
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Latitude</label>
@@ -543,9 +318,9 @@ const Admin = () => {
                 </div>
 
                 {/* Reviews Section */}
-                <div className="mt-8">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">Reviews</h3>
-                  <div className="bg-gray-50 rounded-lg p-4 border">
+                <div className="mt-12">
+                  <h3 className="text-xl font-bold text-blue-700 mb-4">Reviews</h3>
+                  <div className="bg-gray-50 rounded-xl p-6 border">
                     {selectedProject.reviews && selectedProject.reviews.length > 0 ? (
                       <div className="space-y-3">
                         {selectedProject.reviews.map((review) => (
@@ -652,9 +427,9 @@ const Admin = () => {
                 </div>
 
                 {/* Preview */}
-                <div className="mt-8">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">Preview</h3>
-                  <div className="bg-gray-50 rounded-lg p-4 border">
+                <div className="mt-12">
+                  <h3 className="text-xl font-bold text-blue-700 mb-4">Preview</h3>
+                  <div className="bg-gray-50 rounded-xl p-6 border">
                     <pre className="text-sm text-gray-700 whitespace-pre-wrap">{JSON.stringify(selectedProject, null, 2)}</pre>
                   </div>
                 </div>
@@ -665,6 +440,5 @@ const Admin = () => {
       </div>
     </div>
   );
-};
 
 export default Admin;

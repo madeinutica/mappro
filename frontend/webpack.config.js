@@ -1,4 +1,6 @@
 const path = require('path');
+const webpack = require('webpack');
+require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 
 module.exports = {
   entry: path.resolve(__dirname, 'index.js'),
@@ -42,6 +44,12 @@ module.exports = {
   resolve: {
     extensions: ['.js', '.jsx'],
   },
+  plugins: [
+    new webpack.DefinePlugin({
+      SUPABASE_URL: JSON.stringify(process.env.REACT_APP_SUPABASE_URL || 'https://fvrueabzpinhlzyrnhne.supabase.co'),
+      SUPABASE_ANON_KEY: JSON.stringify(process.env.REACT_APP_SUPABASE_ANON_KEY || ''),
+    }),
+  ],
   devServer: {
     static: {
       directory: path.join(__dirname, 'public'),
@@ -49,5 +57,34 @@ module.exports = {
     compress: true,
     port: 3000,
     historyApiFallback: true,
+    // During local development Chrome DevTools may attempt to fetch
+    // /.well-known/appspecific/com.chrome.devtools.json which can be
+    // blocked by a strict Content Security Policy. Add a development-only
+    // CSP header that explicitly allows connections to the local dev server
+    // and to the Supabase origin configured in `frontend/.env` as well as
+    // Mapbox assets and data: URIs used for inline images.
+    headers: (() => {
+      const supabaseRaw = process.env.REACT_APP_SUPABASE_URL || '';
+      let supabaseOrigin = '';
+      try {
+        supabaseOrigin = supabaseRaw ? new URL(supabaseRaw).origin : '';
+      } catch (e) {
+        // If parsing fails, fall back to the raw value (best-effort for dev)
+        supabaseOrigin = supabaseRaw;
+      }
+      // Build connect-src list
+      const connectSrc = ["'self'", 'http://localhost:3000', 'http://localhost:7777', 'https://api.mapbox.com', 'https://events.mapbox.com'];
+      if (supabaseOrigin) connectSrc.push(supabaseOrigin);
+
+      const csp = [
+        `default-src 'self'`,
+        `connect-src ${connectSrc.join(' ')}`,
+        `script-src 'self' 'unsafe-eval' 'unsafe-inline'`,
+        `worker-src blob:`,
+        `style-src 'self' 'unsafe-inline' https://api.mapbox.com`,
+        `img-src 'self' data: https://api.mapbox.com`,
+      ].join('; ');
+      return { 'Content-Security-Policy': csp };
+    })(),
   },
 };

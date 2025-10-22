@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
+import 'mapbox-gl/dist/mapbox-gl.css';
 import { MAPBOX_TOKEN } from '../../config/mapbox.config';
 import { getProjects, getClientInfo } from '../utils/projectApi';
 
@@ -47,12 +48,17 @@ const MapView = ({ user }) => {
     if (map.current) return;
 
     console.log('Initializing map with projects:', projects);
+    console.log('Map container:', mapContainer.current);
 
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
       style: 'mapbox://styles/mapbox/light-v11',
       center: [-75.5, 42.7],
       zoom: 7
+    });
+
+    map.current.on('load', () => {
+      console.log('Map loaded successfully');
     });
 
     projects.forEach(project => {
