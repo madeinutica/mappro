@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getProjects, updateProject, uploadPhoto, deletePhoto } from '../utils/projectApi';
 
-const Admin = () => {
+const Admin = ({ onMap }) => {
   const [projects, setProjects] = useState([]);
   const [selected, setSelected] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -261,6 +261,12 @@ const Admin = () => {
                 }`}
               >
                 📊 Dashboard
+              </button>
+              <button
+                onClick={onMap}
+                className="w-full text-left px-4 py-2 rounded-lg font-medium transition-colors hover:bg-green-50 text-gray-700"
+              >
+                🗺️ View Real Map
               </button>
             </nav>
 
