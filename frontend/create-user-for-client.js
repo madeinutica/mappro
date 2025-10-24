@@ -1,5 +1,19 @@
 // Create a user and associate them with a client
-import { supabase } from './utils/supabaseClient.js';
+//
+// SETUP INSTRUCTIONS:
+// 1. Get your service role key from Supabase Dashboard > Settings > API
+// 2. Set it as an environment variable: SUPABASE_SERVICE_ROLE_KEY=your-key-here
+//    Or replace 'your-service-role-key-here' below with your actual service role key
+// 3. Update the EMAIL, PASSWORD, CLIENT_ID, and ROLE variables below
+// 4. Run: node create-user-for-client.js
+//
+import { createClient } from '@supabase/supabase-js';
+
+// Use service role key for admin operations (get this from Supabase Dashboard > Settings > API)
+const supabaseUrl = 'https://fvrueabzpinhlzyrnhne.supabase.co';
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'your-service-role-key-here';
+
+const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 async function createUserForClient(email, password, clientId, role = 'admin') {
   try {
@@ -55,7 +69,7 @@ async function createUserForClient(email, password, clientId, role = 'admin') {
 // Usage - replace with actual values
 const EMAIL = 'eflorez@newyorksash.com'; // Replace with your desired email
 const PASSWORD = 'Password123'; // Replace with your desired password
-const CLIENT_ID = '550e8400-e29b-41d4-a716-446655440000';
-const ROLE = 'admin';
+const CLIENT_ID = '550e8400-e29b-41d4-a716-446655440000'; // New York Sash client ID
+const ROLE = 'admin'; // 'admin' or 'user'
 
 createUserForClient(EMAIL, PASSWORD, CLIENT_ID, ROLE);
