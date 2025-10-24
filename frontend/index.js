@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 
 import './styles.css';
 import App from './App';
+import { AuthProvider } from './contexts/AuthContext';
 
 console.log('React app starting...');
 
@@ -14,6 +15,10 @@ if (!container) {
 } else {
   const root = createRoot(container);
   console.log('Creating React root...');
-  root.render(<App />);
+  root.render(
+    <AuthProvider>
+      <App />
+    </AuthProvider>
+  );
   console.log('React app rendered');
 }

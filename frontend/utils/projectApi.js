@@ -2,8 +2,8 @@
 import { supabase } from './supabaseClient';
 import { getClientId } from './auth';
 
-export async function getProjects(includeUnpublished = false) {
-  const clientId = getClientId();
+export async function getProjects(includeUnpublished = false, embedClientId = null) {
+  const clientId = embedClientId || await getClientId();
 
   let query = supabase.from('projects').select(`
     *,
@@ -11,10 +11,14 @@ export async function getProjects(includeUnpublished = false) {
   `);
 
   if (clientId) {
-    // For authenticated users, show their client's projects (including unpublished)
+    // For authenticated users with client association, or embed mode with clientId, show their projects
+    // If includeUnpublished is true, show all projects, otherwise only published ones
+    if (!includeUnpublished) {
+      query = query.eq('is_published', true);
+    }
     query = query.eq('client_id', clientId);
   } else {
-    // For public/unauthenticated users, only show published projects
+    // For unauthenticated users, only show published projects (no client filtering)
     query = query.eq('is_published', true);
   }
 
@@ -24,8 +28,8 @@ export async function getProjects(includeUnpublished = false) {
 }
 
 export async function addProject(project) {
-  const clientId = getClientId();
-  if (!clientId) throw new Error('User must be authenticated to add projects');
+  const clientId = await getClientId();
+  if (!clientId) throw new Error('User must be authenticated and associated with a client to add projects');
 
   const { data, error } = await supabase.from('projects').insert([{
     ...project,
@@ -86,7 +90,7 @@ export async function deleteProject(id) {
 }
 
 export async function getClientInfo() {
-  const clientId = getClientId();
+  const clientId = await getClientId();
   if (!clientId) return null;
 
   const { data, error } = await supabase.from('clients').select('*').eq('id', clientId).single();
@@ -120,8 +124,8 @@ export async function deleteReview(id) {
 
 // File upload functions
 export async function uploadPhoto(file, projectId, type) {
-  const clientId = getClientId();
-  if (!clientId) throw new Error('User must be authenticated to upload photos');
+  const clientId = await getClientId();
+  if (!clientId) throw new Error('User must be authenticated and associated with a client to upload photos');
 
   // Create a unique filename
   const fileExt = file.name.split('.').pop();

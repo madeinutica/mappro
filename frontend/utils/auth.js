@@ -68,11 +68,46 @@ const Auth = ({ onAuthSuccess }) => {
   );
 };
 
-export const getClientId = () => {
-  // Placeholder implementation for getClientId
-  // Return the UUID for New York Sash
-  return '550e8400-e29b-41d4-a716-446655440000'; // Fixed UUID for New York Sash
+import { supabase } from './supabaseClient';
+
+export const getClientId = async () => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+
+    // Check if user is associated with any client
+    const { data: userClient, error } = await supabase
+      .from('user_clients')
+      .select('client_id')
+      .eq('user_id', user.id)
+      .single();
+
+    if (error || !userClient) {
+      console.warn('User not associated with any client');
+      return null;
+    }
+
+    return userClient.client_id;
+  } catch (error) {
+    console.error('Error getting client ID:', error);
+    return null;
+  }
 };
+
+// Synchronous version for backward compatibility (returns cached value)
+let cachedClientId = null;
+export const getClientIdSync = () => cachedClientId;
+export const setClientId = (clientId) => { cachedClientId = clientId; };
+
+// Initialize client ID on auth state change
+supabase.auth.onAuthStateChange(async (event, session) => {
+  if (event === 'SIGNED_IN' && session?.user) {
+    const clientId = await getClientId();
+    setClientId(clientId);
+  } else if (event === 'SIGNED_OUT') {
+    setClientId(null);
+  }
+});
 
 // Mock authentication bypass for development purposes
 export const bypassAuth = () => {

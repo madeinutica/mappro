@@ -30,7 +30,7 @@ const Auth = () => {
       // For demo purposes, we'll hardcode some clients
       // In production, this would come from an API
       setClients([
-        { id: '550e8400-e29b-41d4-a716-446655440000', name: 'New York Sash' },
+        { id: '550e8400-e29b-41d4-a716-446655440000', name: 'Example Client' },
         { id: '550e8400-e29b-41d4-a716-446655440001', name: 'BuildCorp' },
         { id: '550e8400-e29b-41d4-a716-446655440002', name: 'ConstructTech' }
       ]);
@@ -68,8 +68,8 @@ const Auth = () => {
     setError('');
 
     try {
-      // Use the real New York Sash admin credentials
-      await signIn('admin@nysash.com', 'password123');
+      // Use demo credentials - replace with actual client credentials
+      await signIn('admin@example.com', 'password123');
       navigate('/map');
     } catch (err) {
       setError('Demo login failed. Please try regular login.');

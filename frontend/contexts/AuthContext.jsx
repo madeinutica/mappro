@@ -48,12 +48,29 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     // Get initial session
     const getInitialSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        setUser(session.user);
-        const userClient = await fetchUserClient(session.user.id);
-        setClient(userClient);
-      } else {
+      try {
+        // Add timeout to prevent hanging
+        const sessionPromise = supabase.auth.getSession();
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Session request timed out')), 30000)
+        );
+        
+        const { data: { session }, error } = await Promise.race([sessionPromise, timeoutPromise]);
+        
+        if (error) {
+          console.error('Error getting session:', error);
+          setUser(null);
+          setClient(null);
+        } else if (session?.user) {
+          setUser(session.user);
+          const userClient = await fetchUserClient(session.user.id);
+          setClient(userClient);
+        } else {
+          setUser(null);
+          setClient(null);
+        }
+      } catch (error) {
+        console.error('Error in getInitialSession:', error);
         setUser(null);
         setClient(null);
       }
@@ -65,11 +82,17 @@ export const AuthProvider = ({ children }) => {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (session?.user) {
-          setUser(session.user);
-          const userClient = await fetchUserClient(session.user.id);
-          setClient(userClient);
-        } else {
+        try {
+          if (session?.user) {
+            setUser(session.user);
+            const userClient = await fetchUserClient(session.user.id);
+            setClient(userClient);
+          } else {
+            setUser(null);
+            setClient(null);
+          }
+        } catch (error) {
+          console.error('Error in auth state change:', error);
           setUser(null);
           setClient(null);
         }
@@ -85,33 +108,35 @@ export const AuthProvider = ({ children }) => {
       email,
       password,
     });
+
+    if (error) {
+      return { data, error };
+    }
+
+    // Check if user is associated with any client
+    if (data.user) {
+      const userClient = await fetchUserClient(data.user.id);
+      if (!userClient) {
+        // Sign out the user since they're not associated with any client
+        await supabase.auth.signOut();
+        return {
+          data: null,
+          error: { message: 'Access denied. You are not authorized to access this admin panel.' }
+        };
+      }
+    }
+
     return { data, error };
   };
 
-  const signUp = async (email, password, clientId = null) => {
+  const signUp = async (email, password) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
     });
 
-    // If signup successful and we have a clientId, create the user_client relationship
-    if (data.user && !error && clientId) {
-      try {
-        const { error: clientError } = await supabase
-          .from('user_clients')
-          .insert({
-            user_id: data.user.id,
-            client_id: clientId,
-            role: 'admin'
-          });
-
-        if (clientError) {
-          console.error('Error creating user-client relationship:', clientError);
-        }
-      } catch (clientError) {
-        console.error('Error creating user-client relationship:', clientError);
-      }
-    }
+    // Note: User will need to be associated with a client by an admin
+    // The user_client relationship should be created through an invitation system
 
     return { data, error };
   };

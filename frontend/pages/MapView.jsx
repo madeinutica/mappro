@@ -20,13 +20,16 @@ const MapView = ({ user, embedMode = false, embedParams = {} }) => {
     const fetchData = async () => {
       try {
         console.log('Fetching projects...');
-        const projectsData = await getProjects();
+        const projectsData = await getProjects(false, embedParams.clientId);
         console.log('Projects fetched:', projectsData);
         
         // Filter projects based on embed parameters
         let filteredProjects = projectsData || [];
         if (embedParams.projectId) {
           filteredProjects = filteredProjects.filter(p => p.id === embedParams.projectId);
+        }
+        if (embedParams.clientId) {
+          filteredProjects = filteredProjects.filter(p => p.client_id === embedParams.clientId);
         }
         if (embedParams.filter) {
           // Add filtering logic based on filter parameter if needed

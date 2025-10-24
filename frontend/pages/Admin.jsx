@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getProjects, updateProject, uploadPhoto, deletePhoto } from '../utils/projectApi';
+import { useAuth } from '../contexts/AuthContext';
 
 const Admin = ({ onMap }) => {
   const [projects, setProjects] = useState([]);
@@ -9,9 +10,10 @@ const Admin = ({ onMap }) => {
   const [saving, setSaving] = useState(false);
   const [uploadingBefore, setUploadingBefore] = useState(false);
   const [uploadingAfter, setUploadingAfter] = useState(false);
-  const [view, setView] = useState('dashboard'); // 'dashboard' or 'edit'
+  const [view, setView] = useState('dashboard'); // 'dashboard' or 'edit' or 'embed'
   const [currentPage, setCurrentPage] = useState(1);
   const [projectsPerPage] = useState(10);
+  const { signOut, client } = useAuth();
 
   useEffect(() => {
     getProjects().then(setProjects);
@@ -298,6 +300,22 @@ const Admin = ({ onMap }) => {
               >
                 🗺️ View Map
               </button>
+              <button
+                onClick={() => setView('embed')}
+                className={`w-full text-left px-4 py-2 rounded-lg font-medium transition-colors ${
+                  view === 'embed'
+                    ? 'bg-purple-100 text-purple-700'
+                    : 'hover:bg-purple-50 text-gray-700'
+                }`}
+              >
+                📤 Embed Code
+              </button>
+              <button
+                onClick={signOut}
+                className="w-full text-left px-4 py-2 rounded-lg font-medium transition-colors hover:bg-red-50 text-gray-700"
+              >
+                🚪 Logout
+              </button>
             </nav>
 
             <input
@@ -351,7 +369,53 @@ const Admin = ({ onMap }) => {
             )}
           </aside>
           <main className="flex-1">
-            {view === 'dashboard' && !selected ? renderDashboard() : (
+            {view === 'dashboard' && !selected ? renderDashboard() : view === 'embed' ? (
+              <div className="bg-white rounded-xl shadow p-8">
+                <div className="flex justify-between items-center mb-6">
+                  <div className="flex items-center space-x-4">
+                    <button
+                      onClick={handleBackToDashboard}
+                      className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                    >
+                      ← Back to Dashboard
+                    </button>
+                    <h2 className="text-2xl font-bold text-purple-700">Embed Code Generator</h2>
+                  </div>
+                </div>
+
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4">Generate Embed Code</h3>
+                    <p className="text-gray-600 mb-4">
+                      Use the code below to embed your map on external websites. Only published projects will be shown.
+                    </p>
+                    
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Embed URL:</label>
+                      <code className="block bg-white p-3 rounded border text-sm break-all">
+                        {`${window.location.origin}?embed=true&client=${client?.id || 'YOUR_CLIENT_ID'}`}
+                      </code>
+                    </div>
+
+                    <div className="bg-gray-50 p-4 rounded-lg mt-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">HTML Embed Code:</label>
+                      <code className="block bg-white p-3 rounded border text-sm break-all">
+                        {`<iframe src="${window.location.origin}?embed=true&client=${client?.id || 'YOUR_CLIENT_ID'}" width="100%" height="600" frameborder="0"></iframe>`}
+                      </code>
+                    </div>
+
+                    <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+                      <h4 className="font-semibold text-blue-800 mb-2">Customization Options:</h4>
+                      <ul className="text-sm text-blue-700 space-y-1">
+                        <li>• <code>width</code> and <code>height</code>: Adjust iframe dimensions</li>
+                        <li>• <code>project=PROJECT_ID</code>: Show only a specific project</li>
+                        <li>• <code>filter=published</code>: Only show published projects (default)</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
               <div className="bg-white rounded-xl shadow p-8">
                 <div className="flex justify-between items-center mb-6">
                   <div className="flex items-center space-x-4">
