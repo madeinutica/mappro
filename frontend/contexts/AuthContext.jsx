@@ -49,25 +49,33 @@ export const AuthProvider = ({ children }) => {
     // Get initial session
     const getInitialSession = async () => {
       try {
-        // Add timeout to prevent hanging
-        const sessionPromise = supabase.auth.getSession();
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Session request timed out')), 30000)
+        // Create a timeout promise that resolves after 10 seconds
+        const timeoutPromise = new Promise((resolve) => 
+          setTimeout(() => resolve({ timedOut: true }), 10000)
         );
         
-        const { data: { session }, error } = await Promise.race([sessionPromise, timeoutPromise]);
+        // Race between session retrieval and timeout
+        const sessionPromise = supabase.auth.getSession();
+        const result = await Promise.race([sessionPromise, timeoutPromise]);
         
-        if (error) {
-          console.error('Error getting session:', error);
+        if (result.timedOut) {
+          console.warn('Session request timed out after 10 seconds, proceeding without session');
           setUser(null);
           setClient(null);
-        } else if (session?.user) {
-          setUser(session.user);
-          const userClient = await fetchUserClient(session.user.id);
-          setClient(userClient);
         } else {
-          setUser(null);
-          setClient(null);
+          // Normal session result
+          if (result.error) {
+            console.error('Error getting session:', result.error);
+            setUser(null);
+            setClient(null);
+          } else if (result.data?.session?.user) {
+            setUser(result.data.session.user);
+            const userClient = await fetchUserClient(result.data.session.user.id);
+            setClient(userClient);
+          } else {
+            setUser(null);
+            setClient(null);
+          }
         }
       } catch (error) {
         console.error('Error in getInitialSession:', error);
@@ -82,12 +90,23 @@ export const AuthProvider = ({ children }) => {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('Auth state change:', event, session?.user?.email);
         try {
           if (session?.user) {
-            setUser(session.user);
+            console.log('User authenticated, fetching client data...');
             const userClient = await fetchUserClient(session.user.id);
+            if (!userClient) {
+              // User is authenticated but not associated with any client
+              console.warn('User authenticated but not associated with any client, signing out');
+              await supabase.auth.signOut();
+              // The sign out will trigger this listener again with null session
+              return;
+            }
+            console.log('User and client data loaded successfully');
+            setUser(session.user);
             setClient(userClient);
           } else {
+            console.log('User signed out or no session');
             setUser(null);
             setClient(null);
           }
@@ -109,23 +128,7 @@ export const AuthProvider = ({ children }) => {
       password,
     });
 
-    if (error) {
-      return { data, error };
-    }
-
-    // Check if user is associated with any client
-    if (data.user) {
-      const userClient = await fetchUserClient(data.user.id);
-      if (!userClient) {
-        // Sign out the user since they're not associated with any client
-        await supabase.auth.signOut();
-        return {
-          data: null,
-          error: { message: 'Access denied. You are not authorized to access this admin panel.' }
-        };
-      }
-    }
-
+    // Don't do client validation here - let the auth state change listener handle it
     return { data, error };
   };
 

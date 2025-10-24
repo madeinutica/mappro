@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../utils/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -7,7 +7,31 @@ const Auth = ({ onBackToMarketing }) => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const { signIn } = useAuth();
+  const { signIn, user, client } = useAuth();
+
+  // Listen for auth state changes to handle client validation errors
+  useEffect(() => {
+    console.log('Auth component useEffect:', { user: user?.email, client: client?.name, loading });
+    if (user && client && loading) {
+      // User successfully signed in and has client association
+      console.log('Setting loading to false - successful login');
+      setLoading(false);
+    } else if (user && !client) {
+      // User signed in but doesn't have client association
+      console.log('Setting error - no client association');
+      setError('Access denied. You are not authorized to access this admin panel.');
+      setLoading(false);
+    } else if (!user && !loading) {
+      // User was signed out (possibly due to client validation failure)
+      console.log('User signed out, clearing error if needed');
+      // Clear any existing error if it was a successful logout
+      if (error === 'Access denied. You are not authorized to access this admin panel.') {
+        // Keep the error message
+      } else {
+        setError('');
+      }
+    }
+  }, [user, client, loading, error]);
 
   const handleForgotPassword = async () => {
     if (!email) {
@@ -30,15 +54,18 @@ const Auth = ({ onBackToMarketing }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
+    setError(''); // Clear any previous errors
     try {
       const { error } = await signIn(email, password);
       if (error) {
         setError(error.message);
+        setLoading(false); // Set loading to false if there's an immediate error
+      } else {
+        // Sign in was successful, wait for auth state change
+        // The useEffect will handle setting loading to false
       }
     } catch (error) {
       setError(error.message || 'Sign in failed');
-    } finally {
       setLoading(false);
     }
   };
