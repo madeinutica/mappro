@@ -1,11 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import MapView from './pages/MapView';
 import Admin from './pages/Admin';
 import Marketing from './components/Marketing';
 import DemoMap from './components/DemoMap';
 
 const App = () => {
-  const [currentView, setCurrentView] = useState('marketing'); // 'marketing', 'demo', 'admin', 'map'
+  const [currentView, setCurrentView] = useState('marketing'); // 'marketing', 'demo', 'admin', 'map', 'embed'
+  const [embedParams, setEmbedParams] = useState({});
+
+  useEffect(() => {
+    // Check URL parameters for embed mode
+    const urlParams = new URLSearchParams(window.location.search);
+    const embed = urlParams.get('embed');
+    const projectId = urlParams.get('project');
+    const filter = urlParams.get('filter');
+
+    if (embed === 'true') {
+      setCurrentView('embed');
+      setEmbedParams({ projectId, filter });
+    }
+  }, []);
 
   const handleDemo = () => {
     setCurrentView('demo');
@@ -92,6 +106,12 @@ const App = () => {
               </div>
             </div>
             <MapView />
+          </div>
+        );
+      case 'embed':
+        return (
+          <div className="w-full h-screen">
+            <MapView embedMode={true} embedParams={embedParams} />
           </div>
         );
       default:

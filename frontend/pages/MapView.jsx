@@ -6,7 +6,7 @@ import { getProjects, getClientInfo } from '../utils/projectApi';
 
 mapboxgl.accessToken = MAPBOX_TOKEN;
 
-const MapView = ({ user }) => {
+const MapView = ({ user, embedMode = false, embedParams = {} }) => {
   console.log('MapView component rendering...');
   const mapContainer = useRef(null);
   const map = useRef(null);
@@ -22,7 +22,19 @@ const MapView = ({ user }) => {
         console.log('Fetching projects...');
         const projectsData = await getProjects();
         console.log('Projects fetched:', projectsData);
-        setProjects(projectsData || []);
+        
+        // Filter projects based on embed parameters
+        let filteredProjects = projectsData || [];
+        if (embedParams.projectId) {
+          filteredProjects = filteredProjects.filter(p => p.id === embedParams.projectId);
+        }
+        if (embedParams.filter) {
+          // Add filtering logic based on filter parameter if needed
+          // For now, just filter by published status
+          filteredProjects = filteredProjects.filter(p => p.is_published);
+        }
+        
+        setProjects(filteredProjects);
 
         if (user) {
           try {
@@ -42,7 +54,7 @@ const MapView = ({ user }) => {
     };
 
     fetchData();
-  }, [user]);
+  }, [user, embedParams]);
 
   useEffect(() => {
     console.log('Map effect triggered:', { loading, error, projectsLength: projects.length });
@@ -202,21 +214,21 @@ const MapView = ({ user }) => {
   }
 
   return (
-    <div className="w-full h-screen relative">
-      {loading && (
+    <div className={`w-full ${embedMode ? 'h-screen' : 'h-screen relative'}`}>
+      {!embedMode && loading && (
         <div className="absolute inset-0 flex items-center justify-center bg-white z-10">
           <div className="text-lg">Loading map...</div>
         </div>
       )}
-      {error && (
+      {!embedMode && error && (
         <div className="absolute inset-0 flex items-center justify-center bg-white z-10">
           <div className="text-red-600">Error: {error}</div>
         </div>
       )}
       <div ref={mapContainer} className="w-full h-screen" />
 
-      {/* Image Modal */}
-      {imageModal.isOpen && (
+      {/* Image Modal - only show in non-embed mode */}
+      {!embedMode && imageModal.isOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50" onClick={() => setImageModal({ isOpen: false, src: '', alt: '' })}>
           <div className="relative max-w-4xl max-h-screen p-4">
             <img

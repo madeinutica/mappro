@@ -124,7 +124,7 @@ const Admin = ({ onMap }) => {
   ) : null;
 
   // Generate embed code
-  const embedCode = `<iframe src="${window.location.origin}" width="100%" height="600" frameborder="0"></iframe>`;
+  const embedCode = `<iframe src="${window.location.origin}?embed=true&filter=published" width="100%" height="600" frameborder="0"></iframe>`;
 
   const renderDashboard = () => (
     <div className="space-y-8">
@@ -214,16 +214,24 @@ const Admin = ({ onMap }) => {
         {/* Embed Code */}
         <div className="bg-white rounded-xl shadow p-6">
           <h2 className="text-xl font-bold text-gray-900 mb-4">Embed Code</h2>
-          <p className="text-sm text-gray-600 mb-4">Use this code to embed your interactive map on any website:</p>
-          <div className="bg-gray-50 rounded-lg p-4">
+          <p className="text-sm text-gray-600 mb-4">Use this code to embed your published projects map on any website:</p>
+          <div className="bg-gray-50 rounded-lg p-4 mb-4">
             <code className="text-sm text-gray-800 break-all">{embedCode}</code>
           </div>
-          <button
-            onClick={() => navigator.clipboard.writeText(embedCode)}
-            className="w-full mt-4 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-          >
-            Copy Embed Code
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => navigator.clipboard.writeText(embedCode)}
+              className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+            >
+              Copy Embed Code
+            </button>
+            <button
+              onClick={() => window.open(`${window.location.origin}?embed=true&filter=published`, '_blank')}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Preview
+            </button>
+          </div>
         </div>
       </div>
 
