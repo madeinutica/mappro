@@ -49,25 +49,33 @@ export const AuthProvider = ({ children }) => {
     // Get initial session
     const getInitialSession = async () => {
       try {
-        // Add timeout to prevent hanging
-        const sessionPromise = supabase.auth.getSession();
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Session request timed out')), 10000)
+        // Create a timeout promise that resolves after 10 seconds
+        const timeoutPromise = new Promise((resolve) => 
+          setTimeout(() => resolve({ timedOut: true }), 10000)
         );
         
+        // Race between session retrieval and timeout
+        const sessionPromise = supabase.auth.getSession();
         const result = await Promise.race([sessionPromise, timeoutPromise]);
         
-        if (result.error) {
-          console.error('Error getting session:', result.error);
+        if (result.timedOut) {
+          console.warn('Session request timed out after 10 seconds, proceeding without session');
           setUser(null);
           setClient(null);
-        } else if (result.data?.session?.user) {
-          setUser(result.data.session.user);
-          const userClient = await fetchUserClient(result.data.session.user.id);
-          setClient(userClient);
         } else {
-          setUser(null);
-          setClient(null);
+          // Normal session result
+          if (result.error) {
+            console.error('Error getting session:', result.error);
+            setUser(null);
+            setClient(null);
+          } else if (result.data?.session?.user) {
+            setUser(result.data.session.user);
+            const userClient = await fetchUserClient(result.data.session.user.id);
+            setClient(userClient);
+          } else {
+            setUser(null);
+            setClient(null);
+          }
         }
       } catch (error) {
         console.error('Error in getInitialSession:', error);
