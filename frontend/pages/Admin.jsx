@@ -10,10 +10,32 @@ const Admin = ({ onMap }) => {
   const [uploadingBefore, setUploadingBefore] = useState(false);
   const [uploadingAfter, setUploadingAfter] = useState(false);
   const [view, setView] = useState('dashboard'); // 'dashboard' or 'edit'
+  const [currentPage, setCurrentPage] = useState(1);
+  const [projectsPerPage] = useState(10);
 
   useEffect(() => {
     getProjects().then(setProjects);
   }, []);
+
+  // Filter and sort projects
+  const filteredProjects = projects
+    .filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()))
+    .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredProjects.length / projectsPerPage);
+  const startIndex = (currentPage - 1) * projectsPerPage;
+  const endIndex = startIndex + projectsPerPage;
+  const currentProjects = filteredProjects.slice(startIndex, endIndex);
+
+  // Reset to page 1 when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
+  const handlePageChange = (pageNumber) => {
+    setCurrentPage(pageNumber);
+  };
 
   const handleSelectProject = (projectId) => {
     const project = projects.find(p => p.id === projectId);
@@ -278,23 +300,61 @@ const Admin = ({ onMap }) => {
               className="w-full px-3 py-2 mb-4 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <ul className="space-y-2">
-              {projects
-                .filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()))
-                .map(project => (
-                  <li key={project.id}>
-                    <button
-                      className={`w-full text-left px-4 py-2 rounded-lg font-medium transition-colors ${
-                        selected === project.id
-                          ? 'bg-blue-100 text-blue-700'
-                          : 'hover:bg-blue-50 text-gray-700'
-                      }`}
-                      onClick={() => handleSelectProject(project.id)}
-                    >
-                      {project.name}
-                    </button>
-                  </li>
-                ))}
+              {currentProjects.map(project => (
+                <li key={project.id}>
+                  <button
+                    className={`w-full text-left px-4 py-2 rounded-lg font-medium transition-colors ${
+                      selected === project.id
+                        ? 'bg-blue-100 text-blue-700'
+                        : 'hover:bg-blue-50 text-gray-700'
+                    }`}
+                    onClick={() => handleSelectProject(project.id)}
+                  >
+                    {project.name}
+                  </button>
+                </li>
+              ))}
             </ul>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="mt-4 flex items-center justify-between">
+                <div className="text-sm text-gray-600">
+                  Showing {startIndex + 1}-{Math.min(endIndex, filteredProjects.length)} of {filteredProjects.length} projects
+                </div>
+                <div className="flex space-x-1">
+                  <button
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    ← Prev
+                  </button>
+                  
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                    <button
+                      key={page}
+                      onClick={() => handlePageChange(page)}
+                      className={`px-3 py-1 text-sm border rounded-md ${
+                        currentPage === page
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  ))}
+                  
+                  <button
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Next →
+                  </button>
+                </div>
+              </div>
+            )}
           </aside>
           <main className="flex-1">
             {view === 'dashboard' && !selected ? renderDashboard() : (
