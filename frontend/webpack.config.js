@@ -55,5 +55,12 @@ module.exports = {
       directory: path.join(__dirname, 'public'),
     },
     compress: true,
+    port: 3010,
+    host: 'localhost',
+    hot: true,
+    client: {
+      overlay: false, // Disable error overlay to reduce console noise
+    },
+    server: 'http', // Explicitly set to http to avoid WebSocket issues
   },
 };
