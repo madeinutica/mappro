@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { addToWaitlist } from '../utils/waitlistApi';
 
 const Marketing = ({ onLogin, onDemo }) => {
   const [showSignupModal, setShowSignupModal] = useState(false);
@@ -30,31 +31,18 @@ const Marketing = ({ onLogin, onDemo }) => {
     setSubmitStatus(null);
 
     try {
-      // Simulate API call - replace with actual API endpoint when backend is ready
-      // For now, we'll simulate a successful submission
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate network delay
-      
-      // In a real implementation, you would make an API call here:
-      // const response = await fetch('/api/waitlist', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({
-      //     email: formData.email.trim(),
-      //     name: formData.name.trim(),
-      //     timestamp: new Date().toISOString(),
-      //   }),
-      // });
-      
-      // Simulate success
+      // Save to waitlist database
+      await addToWaitlist(formData.email, formData.name);
+
       setSubmitStatus('success');
       setFormData({ email: '', name: '' });
-      
+
       // Auto-close modal after 2 seconds on success
       setTimeout(() => {
         setShowSignupModal(false);
         setSubmitStatus(null);
       }, 2000);
-      
+
     } catch (error) {
       console.error('Error submitting form:', error);
       setSubmitStatus('error');
