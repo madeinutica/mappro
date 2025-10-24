@@ -288,7 +288,7 @@ const Admin = ({ onMap }) => {
                 onClick={onMap}
                 className="w-full text-left px-4 py-2 rounded-lg font-medium transition-colors hover:bg-green-50 text-gray-700"
               >
-                🗺️ View Real Map
+                🗺️ View Map
               </button>
             </nav>
 

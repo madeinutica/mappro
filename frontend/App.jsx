@@ -64,12 +64,6 @@ const App = () => {
                 >
                   ← Back to Home
                 </button>
-                <button
-                  onClick={handleDemo}
-                  className="px-4 py-2 bg-green-600 text-white font-semibold rounded-lg shadow-lg hover:bg-green-700 transition-colors"
-                >
-                  View Demo
-                </button>
               </div>
             </div>
             <Admin onMap={handleMap} />
