@@ -52,18 +52,18 @@ export const AuthProvider = ({ children }) => {
         // Add timeout to prevent hanging
         const sessionPromise = supabase.auth.getSession();
         const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Session request timed out')), 30000)
+          setTimeout(() => reject(new Error('Session request timed out')), 10000)
         );
         
-        const { data: { session }, error } = await Promise.race([sessionPromise, timeoutPromise]);
+        const result = await Promise.race([sessionPromise, timeoutPromise]);
         
-        if (error) {
-          console.error('Error getting session:', error);
+        if (result.error) {
+          console.error('Error getting session:', result.error);
           setUser(null);
           setClient(null);
-        } else if (session?.user) {
-          setUser(session.user);
-          const userClient = await fetchUserClient(session.user.id);
+        } else if (result.data?.session?.user) {
+          setUser(result.data.session.user);
+          const userClient = await fetchUserClient(result.data.session.user.id);
           setClient(userClient);
         } else {
           setUser(null);
