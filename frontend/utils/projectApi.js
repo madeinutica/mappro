@@ -36,9 +36,16 @@ export async function addProject(project) {
 }
 
 export async function updateProject(id, updates) {
-  // Try the standard update first
+  // Filter out joined fields that shouldn't be updated on the projects table
+  const filteredUpdates = { ...updates };
+  const joinedFields = ['reviews']; // Add other joined fields here if needed
+
+  joinedFields.forEach(field => {
+    delete filteredUpdates[field];
+  });
+
   try {
-    const { data, error } = await supabase.from('projects').update(updates).eq('id', id);
+    const { data, error } = await supabase.from('projects').update(filteredUpdates).eq('id', id);
     if (error) throw error;
     return data;
   } catch (error) {
@@ -52,7 +59,7 @@ export async function updateProject(id, updates) {
       const values = [];
       let paramIndex = 1;
 
-      for (const [key, value] of Object.entries(updates)) {
+      for (const [key, value] of Object.entries(filteredUpdates)) {
         if (key.includes(' ')) {
           // Quote columns with spaces
           setParts.push(`"${key}" = $${paramIndex}`);

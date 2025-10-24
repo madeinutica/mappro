@@ -76,13 +76,17 @@ module.exports = {
       const connectSrc = ["'self'", 'http://localhost:3010', 'ws://localhost:3010', 'http://localhost:7777', 'https://api.mapbox.com', 'https://events.mapbox.com'];
       if (supabaseOrigin) connectSrc.push(supabaseOrigin);
 
+      // Build img-src list
+      const imgSrc = ["'self'", 'data:', 'https://api.mapbox.com'];
+      if (supabaseOrigin) imgSrc.push(supabaseOrigin);
+
       const csp = [
         `default-src 'self'`,
         `connect-src ${connectSrc.join(' ')}`,
         `script-src 'self' 'unsafe-eval' 'unsafe-inline'`,
         `worker-src blob:`,
         `style-src 'self' 'unsafe-inline' https://api.mapbox.com`,
-        `img-src 'self' data: https://api.mapbox.com`,
+        `img-src ${imgSrc.join(' ')}`,
       ].join('; ');
       return { 'Content-Security-Policy': csp };
     })(),
