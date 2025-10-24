@@ -55,7 +55,7 @@ module.exports = {
       directory: path.join(__dirname, 'public'),
     },
     compress: true,
-    port: 3006,
+    port: 3010,
     historyApiFallback: true,
     // During local development Chrome DevTools may attempt to fetch
     // /.well-known/appspecific/com.chrome.devtools.json which can be
@@ -73,7 +73,7 @@ module.exports = {
         supabaseOrigin = supabaseRaw;
       }
       // Build connect-src list
-      const connectSrc = ["'self'", 'http://localhost:3006', 'ws://localhost:3006', 'http://localhost:7777', 'https://api.mapbox.com', 'https://events.mapbox.com'];
+      const connectSrc = ["'self'", 'http://localhost:3010', 'ws://localhost:3010', 'http://localhost:7777', 'https://api.mapbox.com', 'https://events.mapbox.com'];
       if (supabaseOrigin) connectSrc.push(supabaseOrigin);
 
       const csp = [

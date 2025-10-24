@@ -110,3 +110,39 @@ export async function deleteReview(id) {
   if (error) throw error;
   return data;
 }
+
+// File upload functions
+export async function uploadPhoto(file, projectId, type) {
+  const clientId = getClientId();
+  if (!clientId) throw new Error('User must be authenticated to upload photos');
+
+  // Create a unique filename
+  const fileExt = file.name.split('.').pop();
+  const fileName = `${projectId}_${type}_${Date.now()}.${fileExt}`;
+  const filePath = `projects/${clientId}/${fileName}`;
+
+  const { data, error } = await supabase.storage
+    .from('photos')
+    .upload(filePath, file);
+
+  if (error) throw error;
+
+  // Get the public URL
+  const { data: { publicUrl } } = supabase.storage
+    .from('photos')
+    .getPublicUrl(filePath);
+
+  return publicUrl;
+}
+
+export async function deletePhoto(url) {
+  // Extract the file path from the URL
+  const urlParts = url.split('/');
+  const filePath = urlParts.slice(-3).join('/'); // Get the last 3 parts: clientId/filename
+
+  const { error } = await supabase.storage
+    .from('photos')
+    .remove([filePath]);
+
+  if (error) throw error;
+}

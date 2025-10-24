@@ -106,11 +106,69 @@ const MapView = ({ user }) => {
         el.style.border = '2px solid #fff';
         el.style.cursor = 'pointer';
 
+        // Build popup content with project details
+        const categoryInfo = [];
+        const subCategoryInfo = [];
+        
+        // Check capitalized category fields (which contain the actual data)
+        if (project['Category 1'] && project['Category 1'] !== 'null' && project['Category 1'] !== '') {
+          categoryInfo.push(project['Category 1']);
+        }
+        if (project['Category 2'] && project['Category 2'] !== 'null' && project['Category 2'] !== '') {
+          categoryInfo.push(project['Category 2']);
+        }
+        if (project['Category 3'] && project['Category 3'] !== 'null' && project['Category 3'] !== '') {
+          categoryInfo.push(project['Category 3']);
+        }
+        if (project['Category 4'] && project['Category 4'] !== 'null' && project['Category 4'] !== '') {
+          categoryInfo.push(project['Category 4']);
+        }
+        if (project['Category 5'] && project['Category 5'] !== 'null' && project['Category 5'] !== '') {
+          categoryInfo.push(project['Category 5']);
+        }
+        if (project['Category 6'] && project['Category 6'] !== 'null' && project['Category 6'] !== '') {
+          categoryInfo.push(project['Category 6']);
+        }
+        if (project['Category 7'] && project['Category 7'] !== 'null' && project['Category 7'] !== '') {
+          categoryInfo.push(project['Category 7']);
+        }
+
+        // Check sub-categories
+        if (project['Sub Category 1'] && project['Sub Category 1'] !== 'null' && project['Sub Category 1'] !== '') {
+          subCategoryInfo.push(project['Sub Category 1']);
+        }
+        if (project['Sub Category 2'] && project['Sub Category 2'] !== 'null' && project['Sub Category 2'] !== '') {
+          subCategoryInfo.push(project['Sub Category 2']);
+        }
+        if (project['Sub Category 3'] && project['Sub Category 3'] !== 'null' && project['Sub Category 3'] !== '') {
+          subCategoryInfo.push(project['Sub Category 3']);
+        }
+
+        // Check for photos
+        const hasBeforePhoto = project.before_photo && project.before_photo !== 'null' && project.before_photo !== '';
+        const hasAfterPhoto = project.after_photo && project.after_photo !== 'null' && project.after_photo !== '';
+
+        const popupContent = `
+          <div class="max-w-sm">
+            <h3 class="font-bold text-lg mb-2">${project.name || 'Unnamed Project'}</h3>
+            ${project.description ? `<p class="mb-2">${project.description}</p>` : ''}
+            ${categoryInfo.length > 0 ? `<p class="text-sm text-gray-600"><strong>Categories:</strong> ${categoryInfo.join(', ')}</p>` : ''}
+            ${subCategoryInfo.length > 0 ? `<p class="text-sm text-gray-600"><strong>Details:</strong> ${subCategoryInfo.join(', ')}</p>` : ''}
+            ${(hasBeforePhoto || hasAfterPhoto) ? `
+              <div class="mt-3 flex gap-2">
+                ${hasBeforePhoto ? `<img src="${project.before_photo}" alt="Before" class="w-16 h-16 object-cover rounded cursor-pointer border-2 border-gray-300 hover:border-blue-500" onclick="window.openImageModal('${project.before_photo}', 'Before - ${project.name}')" />` : ''}
+                ${hasAfterPhoto ? `<img src="${project.after_photo}" alt="After" class="w-16 h-16 object-cover rounded cursor-pointer border-2 border-gray-300 hover:border-blue-500" onclick="window.openImageModal('${project.after_photo}', 'After - ${project.name}')" />` : ''}
+              </div>
+            ` : ''}
+            ${project.street || project.city || project.state ? `<p class="text-sm text-gray-600 mt-1">${[project.street, project.city, project.state].filter(Boolean).join(', ')}</p>` : ''}
+          </div>
+        `;
+
         const marker = new mapboxgl.Marker({ element: el })
           .setLngLat([lng, lat])
           .setPopup(
             new mapboxgl.Popup({ offset: 25 })
-              .setHTML(`<div class="max-w-sm"><h3 class="font-bold text-lg mb-2">${project.name || 'Unnamed Project'}</h3><p>Loading details...</p></div>`)
+              .setHTML(popupContent)
           )
           .addTo(map.current);
       } catch (err) {

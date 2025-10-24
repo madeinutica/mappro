@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getProjects, updateProject } from '../utils/projectApi';
+import { getProjects, updateProject, uploadPhoto, deletePhoto } from '../utils/projectApi';
 
 const Admin = () => {
   const [projects, setProjects] = useState([]);
@@ -7,6 +7,8 @@ const Admin = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [formData, setFormData] = useState({});
   const [saving, setSaving] = useState(false);
+  const [uploadingBefore, setUploadingBefore] = useState(false);
+  const [uploadingAfter, setUploadingAfter] = useState(false);
 
   useEffect(() => {
     getProjects().then(setProjects);
@@ -15,7 +17,14 @@ const Admin = () => {
   const handleSelectProject = (projectId) => {
     const project = projects.find(p => p.id === projectId);
     setSelected(projectId);
-    setFormData(project || {});
+    // Convert "null" strings to actual null/empty values for better UX
+    const cleanedProject = { ...project };
+    Object.keys(cleanedProject).forEach(key => {
+      if (cleanedProject[key] === 'null') {
+        cleanedProject[key] = '';
+      }
+    });
+    setFormData(cleanedProject || {});
   };
 
   const handleInputChange = (field, value) => {
@@ -40,6 +49,39 @@ const Admin = () => {
       alert('Error updating project: ' + error.message);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handlePhotoUpload = async (file, type) => {
+    if (!file || !selected) return;
+
+    const isBefore = type === 'before';
+    const setUploading = isBefore ? setUploadingBefore : setUploadingAfter;
+
+    setUploading(true);
+    try {
+      // Delete existing photo if it exists
+      const existingUrl = formData[isBefore ? 'before_photo' : 'after_photo'];
+      if (existingUrl) {
+        try {
+          await deletePhoto(existingUrl);
+        } catch (deleteError) {
+          console.warn('Could not delete existing photo:', deleteError);
+        }
+      }
+
+      // Upload new photo
+      const photoUrl = await uploadPhoto(file, selected, type);
+      
+      // Update form data with new URL
+      handleInputChange(isBefore ? 'before_photo' : 'after_photo', photoUrl);
+      
+      alert(`${type.charAt(0).toUpperCase() + type.slice(1)} photo uploaded successfully!`);
+    } catch (error) {
+      console.error(`Error uploading ${type} photo:`, error);
+      alert(`Error uploading ${type} photo: ${error.message}`);
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -187,13 +229,14 @@ const Admin = () => {
                   <div className="space-y-4">
                     <h3 className="text-lg font-semibold text-gray-800">Categories</h3>
                     
+                    {/* Category Set 1 */}
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Category 1</label>
                         <input
                           type="text"
-                          value={formData['category 1'] || ''}
-                          onChange={(e) => handleInputChange('category 1', e.target.value)}
+                          value={formData['Category 1'] || ''}
+                          onChange={(e) => handleInputChange('Category 1', e.target.value)}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                       </div>
@@ -201,20 +244,21 @@ const Admin = () => {
                         <label className="block text-sm font-medium text-gray-700 mb-1">Sub Category 1</label>
                         <input
                           type="text"
-                          value={formData['sub category 1'] || ''}
-                          onChange={(e) => handleInputChange('sub category 1', e.target.value)}
+                          value={formData['Sub Category 1'] || ''}
+                          onChange={(e) => handleInputChange('Sub Category 1', e.target.value)}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                       </div>
                     </div>
 
+                    {/* Category Set 2 */}
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Category 2</label>
                         <input
                           type="text"
-                          value={formData['category 2'] || ''}
-                          onChange={(e) => handleInputChange('category 2', e.target.value)}
+                          value={formData['Category 2'] || ''}
+                          onChange={(e) => handleInputChange('Category 2', e.target.value)}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                       </div>
@@ -222,20 +266,21 @@ const Admin = () => {
                         <label className="block text-sm font-medium text-gray-700 mb-1">Sub Category 2</label>
                         <input
                           type="text"
-                          value={formData['sub category 2'] || ''}
-                          onChange={(e) => handleInputChange('sub category 2', e.target.value)}
+                          value={formData['Sub Category 2'] || ''}
+                          onChange={(e) => handleInputChange('Sub Category 2', e.target.value)}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                       </div>
                     </div>
 
+                    {/* Category Set 3 */}
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Category 3</label>
                         <input
                           type="text"
-                          value={formData['category 3'] || ''}
-                          onChange={(e) => handleInputChange('category 3', e.target.value)}
+                          value={formData['Category 3'] || ''}
+                          onChange={(e) => handleInputChange('Category 3', e.target.value)}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                       </div>
@@ -243,10 +288,166 @@ const Admin = () => {
                         <label className="block text-sm font-medium text-gray-700 mb-1">Sub Category 3</label>
                         <input
                           type="text"
-                          value={formData['sub category 3'] || ''}
-                          onChange={(e) => handleInputChange('sub category 3', e.target.value)}
+                          value={formData['Sub Category 3'] || ''}
+                          onChange={(e) => handleInputChange('Sub Category 3', e.target.value)}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
+                      </div>
+                    </div>
+
+                    {/* Category Set 4 */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Category 4</label>
+                        <input
+                          type="text"
+                          value={formData['Category 4'] || ''}
+                          onChange={(e) => handleInputChange('Category 4', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Sub Category 4</label>
+                        <input
+                          type="text"
+                          value={formData['Sub Category 4'] || ''}
+                          onChange={(e) => handleInputChange('Sub Category 4', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Category Set 5 */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Category 5</label>
+                        <input
+                          type="text"
+                          value={formData['Category 5'] || ''}
+                          onChange={(e) => handleInputChange('Category 5', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Sub Category 5</label>
+                        <input
+                          type="text"
+                          value={formData['Sub Category 5'] || ''}
+                          onChange={(e) => handleInputChange('Sub Category 5', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Category Set 6 */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Category 6</label>
+                        <input
+                          type="text"
+                          value={formData['Category 6'] || ''}
+                          onChange={(e) => handleInputChange('Category 6', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Sub Category 6</label>
+                        <input
+                          type="text"
+                          value={formData['Sub Category 6'] || ''}
+                          onChange={(e) => handleInputChange('Sub Category 6', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Category Set 7 */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Category 7</label>
+                        <input
+                          type="text"
+                          value={formData['Category 7'] || ''}
+                          onChange={(e) => handleInputChange('Category 7', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Sub Category 7</label>
+                        <input
+                          type="text"
+                          value={formData['Sub Category 7'] || ''}
+                          onChange={(e) => handleInputChange('Sub Category 7', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Lowercase versions for backward compatibility */}
+                    <div className="mt-6 pt-4 border-t border-gray-200">
+                      <h4 className="text-sm font-medium text-gray-600 mb-3">Legacy Fields (if used)</h4>
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">category 1</label>
+                          <input
+                            type="text"
+                            value={formData['category 1'] || ''}
+                            onChange={(e) => handleInputChange('category 1', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">sub category 1</label>
+                          <input
+                            type="text"
+                            value={formData['sub category 1'] || ''}
+                            onChange={(e) => handleInputChange('sub category 1', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4 mt-2">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">category 2</label>
+                          <input
+                            type="text"
+                            value={formData['category 2'] || ''}
+                            onChange={(e) => handleInputChange('category 2', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">sub category 2</label>
+                          <input
+                            type="text"
+                            value={formData['sub category 2'] || ''}
+                            onChange={(e) => handleInputChange('sub category 2', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4 mt-2">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">category 3</label>
+                          <input
+                            type="text"
+                            value={formData['category 3'] || ''}
+                            onChange={(e) => handleInputChange('category 3', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">sub category 3</label>
+                          <input
+                            type="text"
+                            value={formData['sub category 3'] || ''}
+                            onChange={(e) => handleInputChange('sub category 3', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -256,25 +457,51 @@ const Admin = () => {
                     <h3 className="text-lg font-semibold text-gray-800">Photos</h3>
                     
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Before Photo URL</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Before Photo</label>
+                      {formData.before_photo && (
+                        <div className="mb-2">
+                          <img 
+                            src={formData.before_photo} 
+                            alt="Before" 
+                            className="w-32 h-32 object-cover rounded-md border"
+                          />
+                        </div>
+                      )}
                       <input
-                        type="url"
-                        value={formData.before_photo || ''}
-                        onChange={(e) => handleInputChange('before_photo', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="https://example.com/image.jpg"
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files[0];
+                          if (file) handlePhotoUpload(file, 'before');
+                        }}
+                        disabled={uploadingBefore}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                       />
+                      {uploadingBefore && <p className="text-sm text-blue-600 mt-1">Uploading...</p>}
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">After Photo URL</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">After Photo</label>
+                      {formData.after_photo && (
+                        <div className="mb-2">
+                          <img 
+                            src={formData.after_photo} 
+                            alt="After" 
+                            className="w-32 h-32 object-cover rounded-md border"
+                          />
+                        </div>
+                      )}
                       <input
-                        type="url"
-                        value={formData.after_photo || ''}
-                        onChange={(e) => handleInputChange('after_photo', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="https://example.com/image.jpg"
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files[0];
+                          if (file) handlePhotoUpload(file, 'after');
+                        }}
+                        disabled={uploadingAfter}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                       />
+                      {uploadingAfter && <p className="text-sm text-blue-600 mt-1">Uploading...</p>}
                     </div>
 
                     <div className="flex items-center">
