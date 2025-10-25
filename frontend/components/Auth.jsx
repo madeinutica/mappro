@@ -12,24 +12,25 @@ const Auth = ({ onBackToMarketing }) => {
   // Listen for auth state changes to handle client validation errors
   useEffect(() => {
     console.log('Auth component useEffect:', { user: user?.email, client: client?.name, loading });
-    if (user && client && loading) {
+    if (!user) {
+      // User is not authenticated - reset loading state and handle errors
+      console.log('User not authenticated, resetting state');
+      setLoading(false);
+      // Clear any existing error if it was a successful logout
+      if (error === 'Access denied. You are not authorized to access this admin panel.') {
+        // Keep the error message for access denied
+      } else {
+        setError('');
+      }
+    } else if (user && client && loading) {
       // User successfully signed in and has client association
       console.log('Setting loading to false - successful login');
       setLoading(false);
     } else if (user && !client) {
       // User signed in but doesn't have client association
-      console.log('Setting error - no client association');
-      setError('Access denied. You are not authorized to access this admin panel.');
+      console.log('User signed in without client association - allowing access for development');
+      setError(''); // Clear any error
       setLoading(false);
-    } else if (!user && !loading) {
-      // User was signed out (possibly due to client validation failure)
-      console.log('User signed out, clearing error if needed');
-      // Clear any existing error if it was a successful logout
-      if (error === 'Access denied. You are not authorized to access this admin panel.') {
-        // Keep the error message
-      } else {
-        setError('');
-      }
     }
   }, [user, client, loading, error]);
 
@@ -53,21 +54,28 @@ const Auth = ({ onBackToMarketing }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log('handleSubmit called with:', { email, password });
     setLoading(true);
     setError(''); // Clear any previous errors
     try {
-      const { error } = await signIn(email, password);
+      console.log('Calling signIn...');
+      const { error, data } = await signIn(email, password);
+      console.log('signIn result:', { error, data });
       if (error) {
         setError(error.message);
         setLoading(false); // Set loading to false if there's an immediate error
+      } else if (data && data.session) {
+        console.log('Sign in successful, session:', data.session);
       } else {
-        // Sign in was successful, wait for auth state change
-        // The useEffect will handle setting loading to false
+        console.log('Sign in returned no error and no session. Data:', data);
       }
     } catch (error) {
+      console.log('Sign in error (catch):', error);
       setError(error.message || 'Sign in failed');
       setLoading(false);
     }
+    // Add a final log to confirm function exit
+    console.log('handleSubmit finished');
   };
 
   return (

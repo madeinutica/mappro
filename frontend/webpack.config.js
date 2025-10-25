@@ -55,5 +55,13 @@ module.exports = {
       directory: path.join(__dirname, 'public'),
     },
     compress: true,
+    port: 3010,
+    host: '127.0.0.1', // Use 127.0.0.1 instead of localhost for better Chrome compatibility
+    hot: true,
+    client: {
+      overlay: false, // Disable error overlay to reduce console noise
+    },
+    server: 'http', // Explicitly set to http to avoid WebSocket issues
+    allowedHosts: ['localhost', '127.0.0.1'], // Allow both localhost and 127.0.0.1
   },
 };

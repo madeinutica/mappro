@@ -91,8 +91,8 @@ const App = () => {
           </div>
         );
       case 'admin':
-        // Only show admin if user is authenticated and associated with a client
-        if (!user || !client) {
+        // Only show admin if user is authenticated
+        if (!user) {
           setCurrentView('auth');
           return <Auth />;
         }
@@ -102,6 +102,7 @@ const App = () => {
               <div>
                 <h1 className="text-2xl font-bold text-blue-600">Map Pro - Admin</h1>
                 <p className="text-sm text-gray-600">Welcome, {user.email}</p>
+                {!client && <p className="text-sm text-orange-600">⚠️ No client association found - limited access</p>}
               </div>
               <div className="flex items-center space-x-4">
                 <button

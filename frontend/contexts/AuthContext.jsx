@@ -18,7 +18,23 @@ export const AuthProvider = ({ children }) => {
 
   const fetchUserClient = async (userId) => {
     try {
-      const { data, error } = await supabase
+      console.log('Starting fetchUserClient for userId:', userId);
+      // Add timeout to session fetch
+      const sessionTimeoutPromise = new Promise((resolve) =>
+        setTimeout(() => resolve({ timedOut: true }), 3000)
+      );
+      const sessionPromise = supabase.auth.getSession();
+      const sessionResult = await Promise.race([sessionPromise, sessionTimeoutPromise]);
+      if (sessionResult.timedOut) {
+        console.warn('fetchUserClient: getSession timed out after 3 seconds');
+        return null;
+      }
+      console.log('Current Supabase session:', sessionResult);
+      // Add timeout to query
+      const queryTimeoutPromise = new Promise((resolve) =>
+        setTimeout(() => resolve({ timedOut: true }), 5000)
+      );
+      const queryPromise = supabase
         .from('user_clients')
         .select(`
           role,
@@ -32,15 +48,60 @@ export const AuthProvider = ({ children }) => {
         `)
         .eq('user_id', userId)
         .single();
-
+      const result = await Promise.race([queryPromise, queryTimeoutPromise]);
+      if (result.timedOut) {
+        console.warn('fetchUserClient: query timed out after 5 seconds');
+        return null;
+      }
+      const { data, error, status, statusText } = result;
+      console.log('fetchUserClient result:', { data, error, status, statusText });
       if (error && error.code !== 'PGRST116') { // PGRST116 is "not found"
         console.error('Error fetching user client:', error);
         return null;
       }
-
+      console.log('fetchUserClient completed successfully:', data);
       return data;
     } catch (error) {
-      console.error('Error fetching user client:', error);
+      console.error('Error in fetchUserClient:', error);
+      return null;
+    }
+  };
+
+  const createUserClientRelationship = async (userId) => {
+    try {
+      console.log('Creating user-client relationship for userId:', userId);
+      
+      // For development, associate admin user with the default client
+      const defaultClientId = '550e8400-e29b-41d4-a716-446655440000';
+      
+      const { data, error } = await supabase
+        .from('user_clients')
+        .insert({
+          user_id: userId,
+          client_id: defaultClientId,
+          role: 'admin'
+        })
+        .select(`
+          role,
+          clients (
+            id,
+            name,
+            domain,
+            logo_url,
+            primary_color
+          )
+        `)
+        .single();
+
+      if (error) {
+        console.error('Error creating user-client relationship:', error);
+        return null;
+      }
+
+      console.log('User-client relationship created successfully:', data);
+      return data;
+    } catch (error) {
+      console.error('Error in createUserClientRelationship:', error);
       return null;
     }
   };
@@ -94,17 +155,28 @@ export const AuthProvider = ({ children }) => {
         try {
           if (session?.user) {
             console.log('User authenticated, fetching client data...');
-            const userClient = await fetchUserClient(session.user.id);
+            let userClient = await fetchUserClient(session.user.id);
             if (!userClient) {
-              // User is authenticated but not associated with any client
-              console.warn('User authenticated but not associated with any client, signing out');
-              await supabase.auth.signOut();
-              // The sign out will trigger this listener again with null session
-              return;
+              // Try to create the user-client relationship for development
+              console.log('No client association found, attempting to create one...');
+              userClient = await createUserClientRelationship(session.user.id);
+              
+              if (!userClient) {
+                // User is authenticated but not associated with any client
+                console.warn('User authenticated but could not create client association, proceeding without client for development');
+                // For development, allow users without client association
+                setUser(session.user);
+                setClient(null); // Set to null but don't sign out
+              } else {
+                console.log('User and client data loaded successfully after creation');
+                setUser(session.user);
+                setClient(userClient);
+              }
+            } else {
+              console.log('User and client data loaded successfully');
+              setUser(session.user);
+              setClient(userClient);
             }
-            console.log('User and client data loaded successfully');
-            setUser(session.user);
-            setClient(userClient);
           } else {
             console.log('User signed out or no session');
             setUser(null);

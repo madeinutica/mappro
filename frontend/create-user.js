@@ -99,9 +99,9 @@ async function createUserForClient(clientId, clientName, email, password) {
 }
 
 // Example usage - replace with actual values
-const CLIENT_ID = '550e8400-e29b-41d4-a716-446655440000'; // Replace with actual client ID
-const CLIENT_NAME = 'Example Client'; // Replace with actual client name
-const EMAIL = 'admin@example.com'; // Replace with actual email
+const CLIENT_ID = '550e8400-e29b-41d4-a716-446655440000'; // New York Sash client ID
+const CLIENT_NAME = 'New York Sash'; // Replace with actual client name
+const EMAIL = 'admin@newyorksash.com'; // Replace with actual email
 const PASSWORD = 'password123'; // Replace with actual password
 
 createUserForClient(CLIENT_ID, CLIENT_NAME, EMAIL, PASSWORD);

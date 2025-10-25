@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import { MAPBOX_TOKEN } from '../../config/mapbox.config';
+import { MAPBOX_TOKEN } from '../config/mapbox.config';
 import { getProjects, getClientInfo } from '../utils/projectApi';
 
+console.log('MAPBOX_TOKEN:', MAPBOX_TOKEN);
 mapboxgl.accessToken = MAPBOX_TOKEN;
 
 const MapView = ({ user, embedMode = false, embedParams = {} }) => {
@@ -71,12 +72,36 @@ const MapView = ({ user, embedMode = false, embedParams = {} }) => {
     console.log('Map container:', mapContainer.current);
 
     try {
+      console.log('Creating map with container:', mapContainer.current);
+      console.log('Container dimensions:', mapContainer.current?.offsetWidth, mapContainer.current?.offsetHeight);
+      
       map.current = new mapboxgl.Map({
         container: mapContainer.current,
-        style: 'mapbox://styles/mapbox/light-v11',
+        style: {
+          version: 8,
+          sources: {
+            'raster-tiles': {
+              type: 'raster',
+              tiles: [
+                'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
+              ],
+              tileSize: 256,
+              attribution: '© OpenStreetMap contributors'
+            }
+          },
+          layers: [{
+            id: 'simple-tiles',
+            type: 'raster',
+            source: 'raster-tiles',
+            minzoom: 0,
+            maxzoom: 22
+          }]
+        },
         center: [-75.5, 42.7],
         zoom: 7
       });
+
+      console.log('Map created:', map.current);
 
       map.current.on('load', () => {
         console.log('Map loaded successfully');
@@ -84,11 +109,11 @@ const MapView = ({ user, embedMode = false, embedParams = {} }) => {
 
       map.current.on('error', (e) => {
         console.error('Map error:', e);
-        setError('Failed to load map');
+        setError('Failed to load map: ' + (e.error?.message || 'Unknown error'));
       });
     } catch (err) {
       console.error('Error initializing map:', err);
-      setError('Failed to initialize map');
+      setError('Failed to initialize map: ' + err.message);
       return;
     }
 
@@ -228,7 +253,7 @@ const MapView = ({ user, embedMode = false, embedParams = {} }) => {
           <div className="text-red-600">Error: {error}</div>
         </div>
       )}
-      <div ref={mapContainer} className="w-full h-screen" />
+      <div ref={mapContainer} className="w-full h-screen" style={{ minHeight: '400px' }} />
 
       {/* Image Modal - only show in non-embed mode */}
       {!embedMode && imageModal.isOpen && (
