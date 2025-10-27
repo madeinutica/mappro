@@ -40,7 +40,7 @@
             z-index: 1;
             font-size: 14px;
             font-weight: 600;
-            color: #2c5530;
+            color: #d32f2f;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
 
@@ -64,7 +64,7 @@
 
         .mapro-marker {
             position: absolute;
-            background: #2c5530;
+            background: #d32f2f;
             width: 20px;
             height: 20px;
             border-radius: 50%;
@@ -76,7 +76,7 @@
 
         .mapro-popup h3 {
             margin: 0 0 8px 0;
-            color: #2c5530;
+            color: #d32f2f;
             font-size: 16px;
         }
 
@@ -155,7 +155,7 @@
         // Merge options with defaults
         const config = {
             height: options.height || '500px',
-            showHeader: options.showHeader || false,
+            showHeader: false, // Always hide header
             center: options.center || CONFIG.DEFAULT_CENTER,
             zoom: options.zoom || CONFIG.DEFAULT_ZOOM,
             clientId: options.clientId || null, // New: client-specific filtering
@@ -313,7 +313,7 @@
             // Create popup content
             const reviewsHtml = project.reviews && project.reviews.length > 0
                 ? `<div style="margin-top: 12px;">
-                    <h4 style="margin: 0 0 8px 0; font-weight: bold; color: #2c5530;">Reviews (${project.reviews.length})</h4>
+                    <h4 style="margin: 0 0 8px 0; font-weight: bold; color: #d32f2f;">Reviews (${project.reviews.length})</h4>
                     <div style="max-height: 120px; overflow-y: auto;">
                       ${project.reviews.slice(0, 3).map(review => `
                         <div style="background: #f5f5f5; padding: 8px; margin-bottom: 8px; border-radius: 4px; font-size: 12px;">
