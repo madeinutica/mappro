@@ -19,17 +19,13 @@ export const AuthProvider = ({ children }) => {
   const fetchUserClient = async (userId) => {
     try {
       console.log('Starting fetchUserClient for userId:', userId);
-      // Add timeout to session fetch
-      const sessionTimeoutPromise = new Promise((resolve) =>
-        setTimeout(() => resolve({ timedOut: true }), 3000)
-      );
-      const sessionPromise = supabase.auth.getSession();
-      const sessionResult = await Promise.race([sessionPromise, sessionTimeoutPromise]);
-      if (sessionResult.timedOut) {
-        console.warn('fetchUserClient: getSession timed out after 3 seconds');
+      // Get current session
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) {
+        console.error('Error getting session:', sessionError);
         return null;
       }
-      console.log('Current Supabase session:', sessionResult);
+      console.log('Current Supabase session:', session);
       // Add timeout to query
       const queryTimeoutPromise = new Promise((resolve) =>
         setTimeout(() => resolve({ timedOut: true }), 5000)
