@@ -77,26 +77,7 @@ const MapView = ({ user, embedMode = false, embedParams = {} }) => {
       
       map.current = new mapboxgl.Map({
         container: mapContainer.current,
-        style: {
-          version: 8,
-          sources: {
-            'raster-tiles': {
-              type: 'raster',
-              tiles: [
-                'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
-              ],
-              tileSize: 256,
-              attribution: '© OpenStreetMap contributors'
-            }
-          },
-          layers: [{
-            id: 'simple-tiles',
-            type: 'raster',
-            source: 'raster-tiles',
-            minzoom: 0,
-            maxzoom: 22
-          }]
-        },
+        style: 'mapbox://styles/mapbox/light-v10',
         center: [-75.5, 42.7],
         zoom: 7
       });
