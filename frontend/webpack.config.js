@@ -44,6 +44,9 @@ module.exports = {
   resolve: {
     extensions: ['.js', '.jsx'],
   },
+  optimization: {
+    minimize: false,
+  },
   plugins: [
     new webpack.DefinePlugin({
       SUPABASE_URL: JSON.stringify(process.env.REACT_APP_SUPABASE_URL || 'https://fvrueabzpinhlzyrnhne.supabase.co'),
