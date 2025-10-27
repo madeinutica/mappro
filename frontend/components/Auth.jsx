@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../utils/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
 
-const Auth = ({ onBackToMarketing }) => {
+const Auth = ({ onBackToMarketing, onLoginSuccess }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -26,13 +26,16 @@ const Auth = ({ onBackToMarketing }) => {
       // User successfully signed in and has client association
       console.log('Setting loading to false - successful login');
       setLoading(false);
+      if (onLoginSuccess) {
+        onLoginSuccess();
+      }
     } else if (user && !client) {
       // User signed in but doesn't have client association
       console.log('User signed in without client association - allowing access for development');
       setError(''); // Clear any error
       setLoading(false);
     }
-  }, [user, client, loading, error]);
+  }, [user, client, loading, error, onLoginSuccess]);
 
   const handleForgotPassword = async () => {
     if (!email) {

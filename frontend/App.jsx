@@ -64,7 +64,7 @@ const App = () => {
   const renderCurrentView = () => {
     switch (currentView) {
       case 'auth':
-        return <Auth onBackToMarketing={handleBackToMarketing} />;
+        return <Auth onBackToMarketing={handleBackToMarketing} onLoginSuccess={() => setCurrentView('admin')} />;
       case 'demo':
         return (
           <div className="min-h-screen bg-gray-100">
