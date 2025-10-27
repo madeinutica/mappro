@@ -1,5 +1,6 @@
 const path = require('path');
 const webpack = require('webpack');
+const CopyPlugin = require('copy-webpack-plugin');
 require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 
 module.exports = {
@@ -51,6 +52,11 @@ module.exports = {
     new webpack.DefinePlugin({
       SUPABASE_URL: JSON.stringify(process.env.REACT_APP_SUPABASE_URL || 'https://fvrueabzpinhlzyrnhne.supabase.co'),
       SUPABASE_ANON_KEY: JSON.stringify(process.env.REACT_APP_SUPABASE_ANON_KEY || ''),
+    }),
+    new CopyPlugin({
+      patterns: [
+        { from: 'public', to: '' },
+      ],
     }),
   ],
   devServer: {
