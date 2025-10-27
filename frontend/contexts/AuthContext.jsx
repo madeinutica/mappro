@@ -130,9 +130,17 @@ export const AuthProvider = ({ children }) => {
             setUser(null);
             setClient(null);
           } else if (result.data?.session?.user) {
-            setUser(result.data.session.user);
             const userClient = await fetchUserClient(result.data.session.user.id);
-            setClient(userClient);
+            if (userClient) {
+              setUser(result.data.session.user);
+              setClient(userClient);
+            } else {
+              // No client association - sign out
+              console.warn('Initial session user has no client association - signing out');
+              await supabase.auth.signOut();
+              setUser(null);
+              setClient(null);
+            }
           } else {
             setUser(null);
             setClient(null);
@@ -157,9 +165,10 @@ export const AuthProvider = ({ children }) => {
             console.log('User authenticated, fetching client data...');
             let userClient = await fetchUserClient(session.user.id);
             if (!userClient) {
-              // User is authenticated but not associated with any client
-              console.warn('User authenticated but no client association found');
-              setUser(session.user);
+              // User is authenticated but not associated with any client - sign out
+              console.warn('User authenticated but no client association found - signing out');
+              await supabase.auth.signOut();
+              setUser(null);
               setClient(null);
             } else {
               console.log('User and client data loaded successfully');
