@@ -254,8 +254,7 @@
                     .from('projects')
                     .select(`
                         *,
-                        reviews (*),
-                        photos (*)
+                        reviews (*)
                     `)
                     .eq('is_published', true); // Only show published projects
 
