@@ -67,7 +67,7 @@
             background: #d32f2f;
             width: 20px;
             height: 20px;
-            border-radius: 50%;
+            border-radius: 50px;
             box-shadow: 0 0 4px rgba(0,0,0,0.2);
             border: 2px solid #fff;
             cursor: pointer;
