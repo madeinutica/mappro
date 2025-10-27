@@ -1,5 +1,13 @@
 // Associate a user with a client in the user_clients table
-import { supabase } from './utils/supabaseClient.js';
+import { config } from 'dotenv';
+config({ path: './.env' });
+
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.REACT_APP_SUPABASE_URL,
+  process.env.REACT_APP_SUPABASE_ANON_KEY
+);
 
 async function associateUserWithClient(userId, clientId, role = 'admin') {
   try {
@@ -41,7 +49,7 @@ async function associateUserWithClient(userId, clientId, role = 'admin') {
 }
 
 // Usage
-const USER_ID = '2de170ad-56f6-4325-9e5e-d35748fff1af';
+const USER_ID = '1f662711-58df-4280-9dda-d99666941424';
 const CLIENT_ID = '550e8400-e29b-41d4-a716-446655440000';
 const ROLE = 'admin'; // Can be 'admin', 'editor', or 'viewer'
 
