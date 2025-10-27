@@ -10,7 +10,7 @@
   },
   "scripts": {
     "start": "webpack serve --config webpack.config.js --mode development --port 3010",
-    "build": "webpack --mode production"
+    "build": "npx webpack --mode production"
   },
   "devDependencies": {
     "@babel/core": "^7.28.4",
