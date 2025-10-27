@@ -157,21 +157,10 @@ export const AuthProvider = ({ children }) => {
             console.log('User authenticated, fetching client data...');
             let userClient = await fetchUserClient(session.user.id);
             if (!userClient) {
-              // Try to create the user-client relationship for development
-              console.log('No client association found, attempting to create one...');
-              userClient = await createUserClientRelationship(session.user.id);
-              
-              if (!userClient) {
-                // User is authenticated but not associated with any client
-                console.warn('User authenticated but could not create client association, proceeding without client for development');
-                // For development, allow users without client association
-                setUser(session.user);
-                setClient(null); // Set to null but don't sign out
-              } else {
-                console.log('User and client data loaded successfully after creation');
-                setUser(session.user);
-                setClient(userClient);
-              }
+              // User is authenticated but not associated with any client
+              console.warn('User authenticated but no client association found');
+              setUser(session.user);
+              setClient(null);
             } else {
               console.log('User and client data loaded successfully');
               setUser(session.user);
