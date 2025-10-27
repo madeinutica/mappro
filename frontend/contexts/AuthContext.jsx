@@ -183,6 +183,7 @@ export const AuthProvider = ({ children }) => {
         try {
           if (session?.user) {
             console.log('User authenticated, fetching client data...');
+            console.log('Querying user_clients for userId:', session.user.id);
             // Directly query for client association
             const { data: userClientData, error: clientError } = await supabase
               .from('user_clients')
@@ -198,6 +199,8 @@ export const AuthProvider = ({ children }) => {
               `)
               .eq('user_id', session.user.id)
               .single();
+            
+            console.log('Query result:', { userClientData, clientError });
             
             if (!clientError && userClientData) {
               console.log('User and client data loaded successfully');
