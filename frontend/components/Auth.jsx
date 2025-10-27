@@ -22,9 +22,9 @@ const Auth = ({ onBackToMarketing, onLoginSuccess }) => {
       } else {
         setError('');
       }
-    } else if (user && client && loading) {
+    } else if (user && client) {
       // User successfully signed in and has client association
-      console.log('Setting loading to false - successful login');
+      console.log('User has client association');
       setLoading(false);
       if (onLoginSuccess) {
         onLoginSuccess();
