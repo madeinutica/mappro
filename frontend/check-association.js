@@ -1,23 +1,37 @@
 // Check user-client association
-import { supabase } from './utils/supabaseClient.js';
+import { config } from 'dotenv';
+config({ path: './.env' });
+
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.REACT_APP_SUPABASE_URL,
+  process.env.REACT_APP_SUPABASE_ANON_KEY
+);
 
 async function checkAssociation() {
-  const userId = 'e591326c-f899-421c-8138-0699c1df05f4';
-  console.log('Checking association for userId:', userId);
+  const userIds = [
+    'e591326c-f899-421c-8138-0699c1df05f4', // admin@newyorksash.com
+    '1f662711-58df-4280-9dda-d99666941424'  // eflorez@newyorksash.com
+  ];
 
-  const { data, error } = await supabase
-    .from('user_clients')
-    .select(`
-      role,
-      clients (
-        id,
-        name
-      )
-    `)
-    .eq('user_id', userId)
-    .single();
+  for (const userId of userIds) {
+    console.log(`\nChecking association for userId: ${userId}`);
 
-  console.log('Result:', { data, error });
+    const { data, error } = await supabase
+      .from('user_clients')
+      .select(`
+        role,
+        clients (
+          id,
+          name
+        )
+      `)
+      .eq('user_id', userId)
+      .single();
+
+    console.log('Result:', { data, error });
+  }
 }
 
 checkAssociation();
