@@ -135,10 +135,25 @@ export const AuthProvider = ({ children }) => {
             setUser(null);
             setClient(null);
           } else if (result.data?.session?.user) {
-            const userClient = await fetchUserClient(result.data.session.user.id);
-            if (userClient) {
+            // Directly query for client association
+            const { data: userClientData, error: clientError } = await supabase
+              .from('user_clients')
+              .select(`
+                role,
+                clients (
+                  id,
+                  name,
+                  domain,
+                  logo_url,
+                  primary_color
+                )
+              `)
+              .eq('user_id', result.data.session.user.id)
+              .single();
+            
+            if (!clientError && userClientData) {
               setUser(result.data.session.user);
-              setClient(userClient);
+              setClient(userClientData);
             } else {
               // No client association - sign out
               console.warn('Initial session user has no client association - signing out');
@@ -168,17 +183,32 @@ export const AuthProvider = ({ children }) => {
         try {
           if (session?.user) {
             console.log('User authenticated, fetching client data...');
-            let userClient = await fetchUserClient(session.user.id);
-            if (!userClient) {
-              // User is authenticated but not associated with any client - sign out
+            // Directly query for client association
+            const { data: userClientData, error: clientError } = await supabase
+              .from('user_clients')
+              .select(`
+                role,
+                clients (
+                  id,
+                  name,
+                  domain,
+                  logo_url,
+                  primary_color
+                )
+              `)
+              .eq('user_id', session.user.id)
+              .single();
+            
+            if (!clientError && userClientData) {
+              console.log('User and client data loaded successfully');
+              setUser(session.user);
+              setClient(userClientData);
+            } else {
+              // No client association found - sign out
               console.warn('User authenticated but no client association found - signing out');
               await supabase.auth.signOut();
               setUser(null);
               setClient(null);
-            } else {
-              console.log('User and client data loaded successfully');
-              setUser(session.user);
-              setClient(userClient);
             }
           } else {
             console.log('User signed out or no session');
