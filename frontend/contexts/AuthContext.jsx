@@ -135,28 +135,35 @@ export const AuthProvider = ({ children }) => {
             setUser(null);
             setClient(null);
           } else if (result.data?.session?.user) {
-            // Directly query for client association
-            const { data: userClientData, error: clientError } = await supabase
+            // First try simple query without join
+            const { data: simpleData, error: simpleError } = await supabase
               .from('user_clients')
-              .select(`
-                role,
-                clients (
-                  id,
-                  name,
-                  domain,
-                  logo_url,
-                  primary_color
-                )
-              `)
+              .select('role, client_id')
               .eq('user_id', result.data.session.user.id)
               .single();
             
-            if (!clientError && userClientData) {
-              setUser(result.data.session.user);
-              setClient(userClientData);
+            if (!simpleError && simpleData) {
+              // Now get client data
+              const { data: clientData, error: clientError } = await supabase
+                .from('clients')
+                .select('id, name, domain, logo_url, primary_color')
+                .eq('id', simpleData.client_id)
+                .single();
+              
+              if (!clientError && clientData) {
+                setUser(result.data.session.user);
+                setClient({
+                  role: simpleData.role,
+                  clients: clientData
+                });
+              } else {
+                console.warn('Initial session: failed to get client data - signing out');
+                await supabase.auth.signOut();
+                setUser(null);
+                setClient(null);
+              }
             } else {
-              // No client association - sign out
-              console.warn('Initial session user has no client association - signing out');
+              console.warn('Initial session: no user_clients association - signing out');
               await supabase.auth.signOut();
               setUser(null);
               setClient(null);
@@ -184,31 +191,41 @@ export const AuthProvider = ({ children }) => {
           if (session?.user) {
             console.log('User authenticated, fetching client data...');
             console.log('Querying user_clients for userId:', session.user.id);
-            // Directly query for client association
-            const { data: userClientData, error: clientError } = await supabase
+            // First try simple query without join
+            const { data: simpleData, error: simpleError } = await supabase
               .from('user_clients')
-              .select(`
-                role,
-                clients (
-                  id,
-                  name,
-                  domain,
-                  logo_url,
-                  primary_color
-                )
-              `)
+              .select('role, client_id')
               .eq('user_id', session.user.id)
               .single();
             
-            console.log('Query result:', { userClientData, clientError });
+            console.log('Simple query result:', { simpleData, simpleError });
             
-            if (!clientError && userClientData) {
-              console.log('User and client data loaded successfully');
-              setUser(session.user);
-              setClient(userClientData);
+            if (!simpleError && simpleData) {
+              // Now get client data
+              const { data: clientData, error: clientError } = await supabase
+                .from('clients')
+                .select('id, name, domain, logo_url, primary_color')
+                .eq('id', simpleData.client_id)
+                .single();
+              
+              console.log('Client query result:', { clientData, clientError });
+              
+              if (!clientError && clientData) {
+                const userClientData = {
+                  role: simpleData.role,
+                  clients: clientData
+                };
+                console.log('User and client data loaded successfully');
+                setUser(session.user);
+                setClient(userClientData);
+              } else {
+                console.warn('Failed to get client data:', clientError);
+                await supabase.auth.signOut();
+                setUser(null);
+                setClient(null);
+              }
             } else {
-              // No client association found - sign out
-              console.warn('User authenticated but no client association found - signing out');
+              console.warn('No user_clients association found:', simpleError);
               await supabase.auth.signOut();
               setUser(null);
               setClient(null);
