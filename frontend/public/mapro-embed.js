@@ -64,7 +64,7 @@
 
         .mapro-marker {
             position: absolute;
-            background: #2c5530;
+            background: #d32f2f;
             width: 20px;
             height: 20px;
             border-radius: 50%;
