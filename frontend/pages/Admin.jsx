@@ -415,6 +415,19 @@ const Admin = ({ onMap }) => {
                     <p className="text-gray-600 mb-4">
                       Use the code below to embed your map on external websites. Only published projects will be shown.
                     </p>
+                    {/* Client ID Display in Embed Tab */}
+                    {client?.id && (
+                      <div className="mb-4 bg-yellow-50 border-l-4 border-yellow-400 p-3 rounded flex items-center gap-4">
+                        <span className="font-semibold text-yellow-700">Client ID:</span>
+                        <span className="font-mono text-yellow-900 select-all">{client.id}</span>
+                        <button
+                          className="ml-2 px-2 py-1 text-xs bg-yellow-200 rounded hover:bg-yellow-300 text-yellow-900"
+                          onClick={() => navigator.clipboard.writeText(client.id)}
+                        >
+                          Copy
+                        </button>
+                      </div>
+                    )}
                     
                     <div className="bg-gray-50 p-4 rounded-lg">
                       <label className="block text-sm font-medium text-gray-700 mb-2">Embed URL:</label>
@@ -453,6 +466,19 @@ const Admin = ({ onMap }) => {
                     </button>
                     <h2 className="text-2xl font-bold text-blue-700">Edit Project</h2>
                   </div>
+                  {/* Project ID Display */}
+                  {formData?.id && (
+                    <div className="flex items-center gap-2 bg-blue-50 border-l-4 border-blue-400 px-3 py-1 rounded">
+                      <span className="font-semibold text-blue-700">Project ID:</span>
+                      <span className="font-mono text-blue-900 select-all">{formData.id}</span>
+                      <button
+                        className="ml-1 px-2 py-0.5 text-xs bg-blue-200 rounded hover:bg-blue-300 text-blue-900"
+                        onClick={() => navigator.clipboard.writeText(formData.id)}
+                      >
+                        Copy
+                      </button>
+                    </div>
+                  )}
                   <div className="flex gap-2">
                     <button
                       onClick={handleSave}

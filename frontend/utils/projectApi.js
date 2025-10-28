@@ -48,6 +48,12 @@ export async function updateProject(id, updates) {
     delete filteredUpdates[field];
   });
 
+  // Always ensure client_id is present for RLS
+  if (!filteredUpdates.client_id) {
+    const clientId = await getClientId();
+    if (clientId) filteredUpdates.client_id = clientId;
+  }
+
   try {
     const { data, error } = await supabase.from('projects').update(filteredUpdates).eq('id', id);
     if (error) throw error;
