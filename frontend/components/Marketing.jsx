@@ -1,55 +1,6 @@
-import React, { useState } from 'react';
-import { addToWaitlist } from '../utils/waitlistApi';
+import React from 'react';
 
 const Marketing = ({ onLogin, onDemo }) => {
-  const [showSignupModal, setShowSignupModal] = useState(false);
-  const [formData, setFormData] = useState({ email: '', name: '' });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitStatus, setSubmitStatus] = useState(null); // 'success', 'error', or null
-
-  const handleInputChange = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    // Basic validation
-    if (!formData.email.trim()) {
-      setSubmitStatus('error');
-      return;
-    }
-
-    // Email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email)) {
-      setSubmitStatus('error');
-      return;
-    }
-
-    setIsSubmitting(true);
-    setSubmitStatus(null);
-
-    try {
-      // Save to waitlist database
-      await addToWaitlist(formData.email, formData.name);
-
-      setSubmitStatus('success');
-      setFormData({ email: '', name: '' });
-
-      // Auto-close modal after 2 seconds on success
-      setTimeout(() => {
-        setShowSignupModal(false);
-        setSubmitStatus(null);
-      }, 2000);
-
-    } catch (error) {
-      console.error('Error submitting form:', error);
-      setSubmitStatus('error');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {/* Header */}
@@ -98,10 +49,10 @@ const Marketing = ({ onLogin, onDemo }) => {
               Try Demo
             </button>
             <button
-              onClick={() => setShowSignupModal(true)}
+              onClick={onLogin}
               className="border-2 border-blue-600 text-blue-600 px-8 py-3 rounded-lg text-lg font-semibold hover:bg-blue-50 transition-colors"
             >
-              Join Waitlist
+              Sign Up
             </button>
           </div>
         </div>
@@ -175,10 +126,10 @@ const Marketing = ({ onLogin, onDemo }) => {
                   </li>
                 </ul>
                 <button
-                  onClick={() => setShowSignupModal(true)}
+                  onClick={onLogin}
                   className="w-full bg-gray-100 text-gray-900 px-6 py-3 rounded-lg font-semibold hover:bg-gray-200 transition-colors"
                 >
-                  Join Waitlist
+                  Sign Up
                 </button>
               </div>
             </div>
@@ -219,10 +170,10 @@ const Marketing = ({ onLogin, onDemo }) => {
                   </li>
                 </ul>
                 <button
-                  onClick={() => setShowSignupModal(true)}
+                  onClick={onLogin}
                   className="w-full bg-white text-blue-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-50 transition-colors"
                 >
-                  Join Waitlist
+                  Sign Up
                 </button>
               </div>
             </div>
@@ -284,10 +235,10 @@ const Marketing = ({ onLogin, onDemo }) => {
               Try Demo Now
             </button>
             <button
-              onClick={() => setShowSignupModal(true)}
+              onClick={onLogin}
               className="border-2 border-white text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-blue-700 transition-colors"
             >
-              Join Waitlist
+              Sign Up
             </button>
           </div>
         </div>
@@ -302,95 +253,6 @@ const Marketing = ({ onLogin, onDemo }) => {
           </div>
         </div>
       </footer>
-
-      {/* Signup Modal */}
-      {showSignupModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">Join the Waitlist</h2>
-              <button
-                onClick={() => {
-                  setShowSignupModal(false);
-                  setFormData({ email: '', name: '' });
-                  setSubmitStatus(null);
-                }}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            
-            <p className="text-gray-600 mb-6">
-              Be the first to know when Map Pro launches. Get early access and exclusive updates.
-            </p>
-            
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
-                <input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => handleInputChange('email', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Enter your email"
-                  required
-                  disabled={isSubmitting}
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Name (Optional)</label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => handleInputChange('name', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Your name"
-                  disabled={isSubmitting}
-                />
-              </div>
-              
-              {submitStatus === 'success' && (
-                <div className="bg-green-50 border border-green-200 rounded-md p-3">
-                  <p className="text-green-800 text-sm">🎉 Successfully joined the waitlist! We'll be in touch soon.</p>
-                </div>
-              )}
-              
-              {submitStatus === 'error' && (
-                <div className="bg-red-50 border border-red-200 rounded-md p-3">
-                  <p className="text-red-800 text-sm">❌ Something went wrong. Please check your email and try again.</p>
-                </div>
-              )}
-              
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isSubmitting ? 'Joining...' : 'Join Waitlist'}
-              </button>
-            </form>
-            
-            <div className="mt-4 text-center">
-              <p className="text-sm text-gray-600">
-                Already have an account?{' '}
-                <button
-                  onClick={() => {
-                    setShowSignupModal(false);
-                    onLogin();
-                  }}
-                  className="text-blue-600 hover:text-blue-800 font-medium"
-                >
-                  Log in
-                </button>
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

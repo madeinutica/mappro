@@ -79,7 +79,23 @@ export const AuthProvider = ({ children }) => {
 
       try {
         if (firebaseUser) {
-          console.log('Firebase user authenticated, loading client data...');
+          console.log('Firebase user authenticated, setting Supabase session...');
+
+          // Get Firebase ID token and set it as Supabase session
+          const idToken = await firebaseUser.getIdToken();
+
+          // Set the Firebase token as the Supabase auth token
+          const { data: supabaseSession, error: supabaseError } = await supabase.auth.setSession({
+            access_token: idToken,
+            refresh_token: firebaseUser.refreshToken
+          });
+
+          if (supabaseError) {
+            console.warn('Supabase session set failed:', supabaseError);
+            // Continue anyway - some operations might still work
+          } else {
+            console.log('Supabase session set with Firebase token');
+          }
 
           // Get client association data from Supabase
           const clientData = await fetchUserClient(firebaseUser.uid);
@@ -112,6 +128,8 @@ export const AuthProvider = ({ children }) => {
           }
         } else {
           console.log('Firebase user signed out');
+          // Sign out from Supabase too
+          await supabase.auth.signOut();
           setUser(null);
           setClient(null);
         }

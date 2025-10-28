@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getProjects, updateProject, uploadPhoto, deletePhoto } from '../utils/projectApi';
+import { getProjects, updateProject, deleteProject, uploadPhoto, deletePhoto } from '../utils/projectApi';
 import { useAuth } from '../contexts/AuthContext';
 
 const Admin = ({ onMap }) => {
@@ -81,6 +81,30 @@ const Admin = ({ onMap }) => {
       alert('Error updating project: ' + error.message);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!selected) return;
+
+    const project = projects.find(p => p.id === selected);
+    const confirmed = window.confirm(
+      `Are you sure you want to delete the project "${project?.name}"? This action cannot be undone.`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      await deleteProject(selected);
+      // Refresh projects list
+      const updatedProjects = await getProjects();
+      setProjects(updatedProjects);
+      // Go back to dashboard
+      handleBackToDashboard();
+      alert('Project deleted successfully!');
+    } catch (error) {
+      console.error('Error deleting project:', error);
+      alert('Error deleting project: ' + error.message);
     }
   };
 
@@ -427,13 +451,21 @@ const Admin = ({ onMap }) => {
                     </button>
                     <h2 className="text-2xl font-bold text-blue-700">Edit Project</h2>
                   </div>
-                  <button
-                    onClick={handleSave}
-                    disabled={saving}
-                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {saving ? 'Saving...' : 'Save Changes'}
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleSave}
+                      disabled={saving}
+                      className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {saving ? 'Saving...' : 'Save Changes'}
+                    </button>
+                    <button
+                      onClick={handleDelete}
+                      className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                    >
+                      Delete Project
+                    </button>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

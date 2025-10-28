@@ -77,14 +77,7 @@ export const getClientId = async () => {
     const firebaseUser = auth.currentUser;
     if (!firebaseUser) return null;
 
-    // For demo purposes, hardcode the association for the demo user
-    // In production, this would come from the clients table with firebase_uid
-    if (firebaseUser.uid === 'ibEEqGoyOOXeAbBg7QIREWmWa523') { // New York Sash Firebase UID
-      return '550e8400-e29b-41d4-a716-446655440000'; // New York Sash client ID placeholder
-    }
-
     // Query clients table directly using firebase_uid
-    // This is simpler if each client has only one Firebase user
     try {
       const { data: client, error } = await supabase
         .from('clients')

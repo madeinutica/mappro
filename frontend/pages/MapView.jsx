@@ -234,23 +234,12 @@ const MapView = ({ user, embedMode = false, embedParams = {} }) => {
           subCategoryInfo.push(project['Sub Category 3']);
         }
 
-        // Check for photos
-        const hasBeforePhoto = project.before_photo && project.before_photo !== 'null' && project.before_photo !== '';
-        const hasAfterPhoto = project.after_photo && project.after_photo !== 'null' && project.after_photo !== '';
-
         const popupContent = `
-          <div class="max-w-sm">
-            <h3 class="font-bold text-lg mb-2">${project.name || 'Unnamed Project'}</h3>
-            ${project.description ? `<p class="mb-2">${project.description}</p>` : ''}
-            ${categoryInfo.length > 0 ? `<p class="text-sm text-gray-600"><strong>Categories:</strong> ${categoryInfo.join(', ')}</p>` : ''}
-            ${subCategoryInfo.length > 0 ? `<p class="text-sm text-gray-600"><strong>Details:</strong> ${subCategoryInfo.join(', ')}</p>` : ''}
-            ${(hasBeforePhoto || hasAfterPhoto) ? `
-              <div class="mt-3 flex gap-2">
-                ${hasBeforePhoto ? `<img src="${project.before_photo}" alt="Before" class="w-16 h-16 object-cover rounded cursor-pointer border-2 border-gray-300 hover:border-blue-500" data-modal-src="${project.before_photo}" data-modal-alt="Before - ${project.name}" onclick="event.stopPropagation(); this.dispatchEvent(new CustomEvent('openImageModal', { bubbles: true, detail: { src: '${project.before_photo}', alt: 'Before - ${project.name}' } }))" />` : ''}
-                ${hasAfterPhoto ? `<img src="${project.after_photo}" alt="After" class="w-16 h-16 object-cover rounded cursor-pointer border-2 border-gray-300 hover:border-blue-500" data-modal-src="${project.after_photo}" data-modal-alt="After - ${project.name}" onclick="event.stopPropagation(); this.dispatchEvent(new CustomEvent('openImageModal', { bubbles: true, detail: { src: '${project.after_photo}', alt: 'After - ${project.name}' } }))" />` : ''}
-              </div>
-            ` : ''}
-            ${project.street || project.city || project.state ? `<p class="text-sm text-gray-600 mt-1">${[project.street, project.city, project.state].filter(Boolean).join(', ')}</p>` : ''}
+          <div class="max-w-xs bg-white p-2">
+            <h3 class="font-semibold text-xl text-gray-900 mb-1">${project.name || 'Unnamed Project'}</h3>
+            ${project.description ? `<p class="mb-2 text-gray-700 text-sm">${project.description}</p>` : ''}
+            ${categoryInfo.length > 0 ? `<div class="mb-1 flex flex-wrap gap-1">${categoryInfo.map(cat => `<span class=\"bg-blue-50 text-blue-700 text-xs px-2 py-0.5\">${cat}</span>`).join('')}</div>` : ''}
+            ${subCategoryInfo.length > 0 ? `<div class="mb-1 flex flex-wrap gap-1">${subCategoryInfo.map(sub => `<span class=\"bg-green-50 text-green-700 text-xs px-2 py-0.5\">${sub}</span>`).join('')}</div>` : ''}
           </div>
         `;
 
