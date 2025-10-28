@@ -71,7 +71,9 @@ const Admin = ({ onMap }) => {
     
     setSaving(true);
     try {
-      await updateProject(selected, formData);
+      // Ensure client_id is always included
+      const updatedFormData = { ...formData, client_id: client?.id };
+      await updateProject(selected, updatedFormData);
       // Refresh projects list
       const updatedProjects = await getProjects();
       setProjects(updatedProjects);
