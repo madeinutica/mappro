@@ -44,16 +44,19 @@ const Auth = () => {
 
     try {
       if (isLogin) {
-        await signIn(email, password);
-        navigate('/map');
-      } else {
-        if (!clientId) {
-          setError('Please select a client');
-          setLoading(false);
-          return;
+        const result = await signIn(email, password);
+        if (result.error) {
+          setError(result.error.message);
+        } else {
+          navigate('/map');
         }
-        await signUp(email, password, clientId);
-        navigate('/map');
+      } else {
+        const result = await signUp(email, password);
+        if (result.error) {
+          setError(result.error.message);
+        } else {
+          navigate('/map');
+        }
       }
     } catch (err) {
       setError(err.message);
@@ -68,9 +71,13 @@ const Auth = () => {
     setError('');
 
     try {
-      // Use demo credentials - replace with actual client credentials
-      await signIn('admin@example.com', 'password123');
-      navigate('/map');
+      // Use demo credentials for Firebase
+      const result = await signIn('demo@mappro.com', 'password123');
+      if (result.error) {
+        setError('Demo login failed. Please try regular login.');
+      } else {
+        navigate('/map');
+      }
     } catch (err) {
       setError('Demo login failed. Please try regular login.');
     } finally {

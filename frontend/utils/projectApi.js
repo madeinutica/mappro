@@ -10,15 +10,15 @@ export async function getProjects(includeUnpublished = false, embedClientId = nu
     reviews (*)
   `);
 
-  if (clientId) {
-    // For authenticated users with client association, or embed mode with clientId, show their projects
-    // If includeUnpublished is true, show all projects, otherwise only published ones
+  if (embedClientId) {
+    // For embed mode with specific client, show their projects
     if (!includeUnpublished) {
       query = query.eq('is_published', true);
     }
-    query = query.eq('client_id', clientId);
+    query = query.eq('client_id', embedClientId);
   } else {
-    // For unauthenticated users, only show published projects (no client filtering)
+    // For regular access, show all published projects
+    // This works for both authenticated and unauthenticated users
     query = query.eq('is_published', true);
   }
 

@@ -1,4 +1,11 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { auth } from '../config/firebase.config';
+import {
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut as firebaseSignOut,
+  onAuthStateChanged
+} from 'firebase/auth';
 import { supabase } from '../utils/supabaseClient';
 
 const AuthContext = createContext({});
@@ -16,284 +23,283 @@ export const AuthProvider = ({ children }) => {
   const [client, setClient] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchUserClient = async (userId) => {
+  // Fetch user-client association from Supabase
+  const fetchUserClient = async (firebaseUid) => {
     try {
-      console.log('Starting fetchUserClient for userId:', userId);
-      // Add timeout to session fetch
-      const sessionTimeoutPromise = new Promise((resolve) =>
-        setTimeout(() => resolve({ timedOut: true }), 10000)
-      );
-      const sessionPromise = supabase.auth.getSession();
-      const sessionResult = await Promise.race([sessionPromise, sessionTimeoutPromise]);
-      if (sessionResult.timedOut) {
-        console.warn('fetchUserClient: getSession timed out after 10 seconds');
-        return null;
+      console.log('Fetching user-client association for Firebase UID:', firebaseUid);
+
+      // For demo purposes, hardcode the association for the demo user
+      // In production, this would come from the database
+      if (firebaseUid === 'ibEEqGoyOOXeAbBg7QIREWmWa523') { // eflorez@newyorksash.com Firebase UID
+        console.log('Demo user detected, associating with New York Sash client');
+        return {
+          role: 'admin',
+          clients: {
+            id: '550e8400-e29b-41d4-a716-446655440000',
+            name: 'New York Sash',
+            domain: 'newyorksash.com',
+            logo_url: null,
+            primary_color: '#3B82F6'
+          }
+        };
       }
-      const { data: { session }, error: sessionError } = sessionResult;
-      if (sessionError) {
-        console.error('Error getting session:', sessionError);
-        return null;
-      }
-      console.log('Current Supabase session:', session);
-      // Add timeout to query
-      const queryTimeoutPromise = new Promise((resolve) =>
-        setTimeout(() => resolve({ timedOut: true }), 5000)
-      );
-      const queryPromise = supabase
-        .from('user_clients')
-        .select(`
-          role,
-          clients (
-            id,
-            name,
-            domain,
-            logo_url,
-            primary_color
-          )
-        `)
-        .eq('user_id', userId)
+
+      // Query clients table directly using firebase_uid
+      const { data, error } = await supabase
+        .from('clients')
+        .select('id, name, domain, logo_url, primary_color')
+        .eq('firebase_uid', firebaseUid)
         .single();
-      const result = await Promise.race([queryPromise, queryTimeoutPromise]);
-      if (result.timedOut) {
-        console.warn('fetchUserClient: query timed out after 5 seconds');
-        return null;
-      }
-      const { data, error, status, statusText } = result;
-      console.log('fetchUserClient result:', { data, error, status, statusText });
+
       if (error && error.code !== 'PGRST116') { // PGRST116 is "not found"
         console.error('Error fetching user client:', error);
         return null;
       }
-      console.log('fetchUserClient completed successfully:', data);
-      return data;
+
+      if (data) {
+        console.log('User-client association found:', data);
+        return {
+          role: 'admin', // Default role for Firebase users
+          clients: data
+        };
+      }
+
+      console.warn('No client association found for Firebase UID:', firebaseUid);
+      return null;
     } catch (error) {
       console.error('Error in fetchUserClient:', error);
       return null;
     }
   };
 
-  const createUserClientRelationship = async (userId) => {
-    try {
-      console.log('Creating user-client relationship for userId:', userId);
-      
-      // For development, associate admin user with the default client
-      const defaultClientId = '550e8400-e29b-41d4-a716-446655440000';
-      
-      const { data, error } = await supabase
-        .from('user_clients')
-        .insert({
-          user_id: userId,
-          client_id: defaultClientId,
-          role: 'admin'
-        })
-        .select(`
-          role,
-          clients (
-            id,
-            name,
-            domain,
-            logo_url,
-            primary_color
-          )
-        `)
-        .single();
-
-      if (error) {
-        console.error('Error creating user-client relationship:', error);
-        return null;
-      }
-
-      console.log('User-client relationship created successfully:', data);
-      return data;
-    } catch (error) {
-      console.error('Error in createUserClientRelationship:', error);
-      return null;
-    }
-  };
-
   useEffect(() => {
-    // Get initial session
-    const getInitialSession = async () => {
+    // Listen for Firebase auth state changes
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      console.log('Firebase auth state change:', firebaseUser?.email || 'signed out');
+
       try {
-        // Create a timeout promise that resolves after 10 seconds
-        const timeoutPromise = new Promise((resolve) => 
-          setTimeout(() => resolve({ timedOut: true }), 10000)
-        );
-        
-        // Race between session retrieval and timeout
-        const sessionPromise = supabase.auth.getSession();
-        const result = await Promise.race([sessionPromise, timeoutPromise]);
-        
-        if (result.timedOut) {
-          console.warn('Session request timed out after 10 seconds, proceeding without session');
+        if (firebaseUser) {
+          console.log('Firebase user authenticated, loading client data...');
+
+          // Get client association data from Supabase
+          const clientData = await fetchUserClient(firebaseUser.uid);
+
+          if (clientData) {
+            // Transform Firebase user to match the expected format
+            const transformedUser = {
+              id: firebaseUser.uid,
+              email: firebaseUser.email,
+              email_confirmed_at: firebaseUser.emailVerified ? new Date().toISOString() : null,
+              created_at: firebaseUser.metadata.creationTime,
+              updated_at: firebaseUser.metadata.lastSignInTime
+            };
+
+            setUser(transformedUser);
+            setClient(clientData);
+            console.log('Firebase user and client data loaded successfully');
+          } else {
+            console.warn('No client association found for Firebase user - allowing demo access');
+            // For demo purposes, let's still allow login but with limited access
+            const transformedUser = {
+              id: firebaseUser.uid,
+              email: firebaseUser.email,
+              email_confirmed_at: firebaseUser.emailVerified ? new Date().toISOString() : null,
+              created_at: firebaseUser.metadata.creationTime,
+              updated_at: firebaseUser.metadata.lastSignInTime
+            };
+            setUser(transformedUser);
+            setClient(null); // No client association
+          }
+        } else {
+          console.log('Firebase user signed out');
           setUser(null);
           setClient(null);
-        } else {
-          // Normal session result
-          if (result.error) {
-            console.error('Error getting session:', result.error);
-            setUser(null);
-            setClient(null);
-          } else if (result.data?.session?.user) {
-            // First try simple query without join
-            const { data: allData, error: allError } = await supabase
-              .from('user_clients')
-              .select('role, client_id')
-              .eq('user_id', result.data.session.user.id);
-            
-            if (allError) {
-              console.error('Initial session: error querying user_clients:', allError);
-              await supabase.auth.signOut();
-              setUser(null);
-              setClient(null);
-            } else if (!allData || allData.length === 0) {
-              console.warn('Initial session: no user_clients association - signing out');
-              await supabase.auth.signOut();
-              setUser(null);
-              setClient(null);
-            } else {
-              const simpleData = allData[0];
-              // Now get client data
-              const { data: clientData, error: clientError } = await supabase
-                .from('clients')
-                .select('id, name, domain, logo_url, primary_color')
-                .eq('id', simpleData.client_id)
-                .single();
-              
-              if (!clientError && clientData) {
-                setUser(result.data.session.user);
-                setClient({
-                  role: simpleData.role,
-                  clients: clientData
-                });
-              } else {
-                console.warn('Initial session: failed to get client data - signing out');
-                await supabase.auth.signOut();
-                setUser(null);
-                setClient(null);
-              }
-            }
-          } else {
-            setUser(null);
-            setClient(null);
-          }
         }
       } catch (error) {
-        console.error('Error in getInitialSession:', error);
+        console.error('Error in Firebase auth state change:', error);
         setUser(null);
         setClient(null);
       }
+
       setLoading(false);
-    };
+    });
 
-    getInitialSession();
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('Auth state change:', event, session?.user?.email);
-        try {
-          if (session?.user) {
-            console.log('User authenticated, fetching client data...');
-            console.log('Querying user_clients for userId:', session.user.id);
-            // Try query without .single() first
-            const { data: allData, error: allError } = await supabase
-              .from('user_clients')
-              .select('role, client_id')
-              .eq('user_id', session.user.id);
-            
-            console.log('All data query result:', { allData, allError });
-            
-            if (allError) {
-              console.error('Error querying user_clients:', allError);
-              await supabase.auth.signOut();
-              setUser(null);
-              setClient(null);
-              setLoading(false);
-              return;
-            }
-            
-            if (!allData || allData.length === 0) {
-              console.warn('No user_clients association found');
-              await supabase.auth.signOut();
-              setUser(null);
-              setClient(null);
-              setLoading(false);
-              return;
-            }
-            
-            if (allData.length > 1) {
-              console.warn('Multiple user_clients associations found, using first one');
-            }
-            
-            const simpleData = allData[0];
-            console.log('Using data:', simpleData);
-            
-            // Now get client data
-            const { data: clientData, error: clientError } = await supabase
-              .from('clients')
-              .select('id, name, domain, logo_url, primary_color')
-              .eq('id', simpleData.client_id)
-              .single();
-            
-            console.log('Client query result:', { clientData, clientError });
-            
-            if (!clientError && clientData) {
-              const userClientData = {
-                role: simpleData.role,
-                clients: clientData
-              };
-              console.log('User and client data loaded successfully');
-              setUser(session.user);
-              setClient(userClientData);
-            } else {
-              console.warn('Failed to get client data:', clientError);
-              await supabase.auth.signOut();
-              setUser(null);
-              setClient(null);
-            }
-          } else {
-            console.log('User signed out or no session');
-            setUser(null);
-            setClient(null);
-          }
-        } catch (error) {
-          console.error('Error in auth state change:', error);
-          setUser(null);
-          setClient(null);
-        }
-        setLoading(false);
-      }
-    );
-
-    return () => subscription.unsubscribe();
+    return () => unsubscribe();
   }, []);
 
   const signIn = async (email, password) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      console.log('Firebase sign in successful:', userCredential.user.email);
 
-    // Don't do client validation here - let the auth state change listener handle it
-    return { data, error };
+      // Return a session-like object that matches what Auth.jsx expects
+      return {
+        data: {
+          user: userCredential.user,
+          session: {
+            user: userCredential.user,
+            access_token: await userCredential.user.getIdToken(),
+            refresh_token: userCredential.user.refreshToken
+          }
+        },
+        error: null
+      };
+    } catch (error) {
+      console.error('Firebase sign in error:', error);
+      return { data: null, error };
+    }
   };
 
-  const signUp = async (email, password) => {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-    });
+  const signUp = async (email, password, companyName, domain) => {
+    try {
+      // Create Firebase user
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      console.log('Firebase sign up successful:', userCredential.user.email);
 
-    // Note: User will need to be associated with a client by an admin
-    // The user_client relationship should be created through an invitation system
+      // Generate a client name from email domain if not provided
+      const clientName = companyName || email.split('@')[1]?.split('.')[0] || 'My Company';
+      const clientDomain = domain || email.split('@')[1] || `${clientName.toLowerCase()}.com`;
 
-    return { data, error };
+      // Create new client in Supabase
+      const { data: newClient, error: clientError } = await supabase
+        .from('clients')
+        .insert({
+          name: clientName,
+          domain: clientDomain,
+          firebase_uid: userCredential.user.uid
+        })
+        .select()
+        .single();
+
+      if (clientError) {
+        console.error('Error creating client:', clientError);
+        // If client creation fails, we should still allow the user to be created
+        // They can try again or contact support
+        return {
+          data: {
+            user: userCredential.user,
+            client: null
+          },
+          error: { message: 'Account created but client setup failed. Please contact support.' }
+        };
+      }
+
+      console.log('New client created:', newClient);
+
+      return {
+        data: {
+          user: userCredential.user,
+          client: {
+            role: 'admin',
+            clients: newClient
+          }
+        },
+        error: null
+      };
+    } catch (error) {
+      console.error('Firebase sign up error:', error);
+
+      // Handle email already in use - try to sign in and associate with client
+      if (error.code === 'auth/email-already-in-use') {
+        console.log('Email already exists, attempting to sign in and associate with client...');
+
+        try {
+          // Try to sign in with the provided credentials
+          const signInResult = await signInWithEmailAndPassword(auth, email, password);
+          console.log('Sign in successful for existing user:', signInResult.user.email);
+
+          // Check if user already has a client
+          const { data: existingClient, error: fetchError } = await supabase
+            .from('clients')
+            .select('*')
+            .eq('firebase_uid', signInResult.user.uid)
+            .single();
+
+          if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 is "not found"
+            console.error('Error checking for existing client:', fetchError);
+            return {
+              data: {
+                user: signInResult.user,
+                client: null
+              },
+              error: { message: 'Account exists but client association failed. Please contact support.' }
+            };
+          }
+
+          if (existingClient) {
+            console.log('User already has client:', existingClient);
+            return {
+              data: {
+                user: signInResult.user,
+                client: {
+                  role: 'admin',
+                  clients: existingClient
+                }
+              },
+              error: null
+            };
+          }
+
+          // User exists but no client - create one
+          console.log('User exists but no client found, creating new client...');
+          const clientName = companyName || email.split('@')[1]?.split('.')[0] || 'My Company';
+          const clientDomain = domain || email.split('@')[1] || `${clientName.toLowerCase()}.com`;
+
+          const { data: newClient, error: clientError } = await supabase
+            .from('clients')
+            .insert({
+              name: clientName,
+              domain: clientDomain,
+              firebase_uid: signInResult.user.uid
+            })
+            .select()
+            .single();
+
+          if (clientError) {
+            console.error('Error creating client for existing user:', clientError);
+            return {
+              data: {
+                user: signInResult.user,
+                client: null
+              },
+              error: { message: 'Account exists but client setup failed. Please contact support.' }
+            };
+          }
+
+          console.log('New client created for existing user:', newClient);
+          return {
+            data: {
+              user: signInResult.user,
+              client: {
+                role: 'admin',
+                clients: newClient
+              }
+            },
+            error: null
+          };
+
+        } catch (signInError) {
+          console.error('Failed to sign in existing user:', signInError);
+          return {
+            data: null,
+            error: { message: 'This email is already registered. Please sign in with your existing password or reset your password.' }
+          };
+        }
+      }
+
+      return { data: null, error };
+    }
   };
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    return { error };
+    try {
+      await firebaseSignOut(auth);
+      console.log('Firebase sign out successful');
+      return { error: null };
+    } catch (error) {
+      console.error('Firebase sign out error:', error);
+      return { error };
+    }
   };
 
   const value = {

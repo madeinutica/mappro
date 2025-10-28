@@ -11,13 +11,34 @@ const MapView = ({ user, embedMode = false, embedParams = {} }) => {
   console.log('MapView component rendering...');
   const mapContainer = useRef(null);
   const map = useRef(null);
+  const markersRef = useRef([]);
   const [projects, setProjects] = useState([]);
   const [clientInfo, setClientInfo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [imageModal, setImageModal] = useState({ isOpen: false, src: '', alt: '' });
+  const [mapInitialized, setMapInitialized] = useState(false);
+  const previousProjectsRef = useRef(null);
+  const dataFetchedRef = useRef(false);
+  const lastUserRef = useRef(null);
+  const lastEmbedParamsRef = useRef(null);
 
+  // Fetch data only when user or embed params actually change
   useEffect(() => {
+    const userChanged = lastUserRef.current?.email !== user?.email;
+    const embedParamsChanged = JSON.stringify(lastEmbedParamsRef.current) !== JSON.stringify(embedParams);
+
+    if (!userChanged && !embedParamsChanged && dataFetchedRef.current) {
+      console.log('No changes detected, skipping data fetch');
+      return;
+    }
+
+    console.log('User or embed params changed, fetching data...', { userChanged, embedParamsChanged });
+
+    lastUserRef.current = user;
+    lastEmbedParamsRef.current = embedParams;
+    dataFetchedRef.current = false;
+
     const fetchData = async () => {
       try {
         console.log('Fetching projects...');
@@ -39,6 +60,7 @@ const MapView = ({ user, embedMode = false, embedParams = {} }) => {
         }
         
         setProjects(filteredProjects);
+        dataFetchedRef.current = true;
 
         if (user) {
           try {
@@ -58,23 +80,23 @@ const MapView = ({ user, embedMode = false, embedParams = {} }) => {
     };
 
     fetchData();
-  }, [user, embedParams]);
+  }, [user?.email, JSON.stringify(embedParams)]); // Use stable values
 
+  // Initialize map only once
   useEffect(() => {
-    console.log('Map effect triggered:', { loading, error, projectsLength: projects.length });
-    if (loading || error || !projects.length) {
-      console.log('Skipping map initialization:', { loading, error, hasProjects: projects.length > 0 });
+    console.log('Map init effect triggered:', { loading, error, mapInitialized });
+    if (loading || error || map.current) {
+      console.log('Skipping map initialization:', { loading, error, hasMap: !!map.current });
       return;
     }
-    if (map.current) return;
 
-    console.log('Initializing map with projects:', projects);
+    console.log('Initializing map...');
     console.log('Map container:', mapContainer.current);
 
     try {
       console.log('Creating map with container:', mapContainer.current);
       console.log('Container dimensions:', mapContainer.current?.offsetWidth, mapContainer.current?.offsetHeight);
-      
+
       map.current = new mapboxgl.Map({
         container: mapContainer.current,
         style: 'mapbox://styles/mapbox/light-v10',
@@ -85,11 +107,12 @@ const MapView = ({ user, embedMode = false, embedParams = {} }) => {
       console.log('Map created:', map.current);
 
       map.current.on('load', () => {
-        console.log('Map loaded successfully');
+        console.log('🗺️ Map loaded successfully');
+        setMapInitialized(true);
       });
 
       map.current.on('error', (e) => {
-        console.error('Map error:', e);
+        console.error('❌ Map error:', e);
         setError('Failed to load map: ' + (e.error?.message || 'Unknown error'));
       });
     } catch (err) {
@@ -97,6 +120,52 @@ const MapView = ({ user, embedMode = false, embedParams = {} }) => {
       setError('Failed to initialize map: ' + err.message);
       return;
     }
+
+    // Cleanup function
+    return () => {
+      if (map.current) {
+        map.current.remove();
+        map.current = null;
+        setMapInitialized(false);
+      }
+    };
+  }, [loading, error]);
+
+  // Update markers when projects change or map initializes
+  useEffect(() => {
+    console.log('🔄 Markers effect triggered:', {
+      mapInitialized,
+      projectsLength: projects.length,
+      hasMap: !!map.current,
+      projectsChanged: JSON.stringify(projects) !== JSON.stringify(previousProjectsRef.current)
+    });
+
+    // Always update markers if map is initialized and we have projects
+    // Don't skip just because projects haven't changed - we need to create markers on first load
+    if (!mapInitialized || !map.current || !projects.length) {
+      console.log('⏭️ Skipping marker creation:', { mapInitialized, hasMap: !!map.current, hasProjects: projects.length > 0 });
+      return;
+    }
+
+    // Double-check map is still valid
+    if (!map.current || !map.current.isStyleLoaded()) {
+      console.log('🗺️ Map not ready, skipping marker creation');
+      return;
+    }
+
+    console.log('📍 Updating markers for projects:', projects.map(p => p.name));
+
+    // Clear existing markers
+    console.log('Clearing existing markers:', markersRef.current.length);
+    markersRef.current.forEach(marker => {
+      try {
+        marker.remove();
+      } catch (err) {
+        console.warn('Error removing marker:', err);
+      }
+    });
+    markersRef.current = [];
+    console.log('Markers cleared, now adding new ones');
 
     projects.forEach(project => {
       try {
@@ -177,8 +246,8 @@ const MapView = ({ user, embedMode = false, embedParams = {} }) => {
             ${subCategoryInfo.length > 0 ? `<p class="text-sm text-gray-600"><strong>Details:</strong> ${subCategoryInfo.join(', ')}</p>` : ''}
             ${(hasBeforePhoto || hasAfterPhoto) ? `
               <div class="mt-3 flex gap-2">
-                ${hasBeforePhoto ? `<img src="${project.before_photo}" alt="Before" class="w-16 h-16 object-cover rounded cursor-pointer border-2 border-gray-300 hover:border-blue-500" onclick="window.openImageModal('${project.before_photo}', 'Before - ${project.name}')" />` : ''}
-                ${hasAfterPhoto ? `<img src="${project.after_photo}" alt="After" class="w-16 h-16 object-cover rounded cursor-pointer border-2 border-gray-300 hover:border-blue-500" onclick="window.openImageModal('${project.after_photo}', 'After - ${project.name}')" />` : ''}
+                ${hasBeforePhoto ? `<img src="${project.before_photo}" alt="Before" class="w-16 h-16 object-cover rounded cursor-pointer border-2 border-gray-300 hover:border-blue-500" data-modal-src="${project.before_photo}" data-modal-alt="Before - ${project.name}" onclick="event.stopPropagation(); this.dispatchEvent(new CustomEvent('openImageModal', { bubbles: true, detail: { src: '${project.before_photo}', alt: 'Before - ${project.name}' } }))" />` : ''}
+                ${hasAfterPhoto ? `<img src="${project.after_photo}" alt="After" class="w-16 h-16 object-cover rounded cursor-pointer border-2 border-gray-300 hover:border-blue-500" data-modal-src="${project.after_photo}" data-modal-alt="After - ${project.name}" onclick="event.stopPropagation(); this.dispatchEvent(new CustomEvent('openImageModal', { bubbles: true, detail: { src: '${project.after_photo}', alt: 'After - ${project.name}' } }))" />` : ''}
               </div>
             ` : ''}
             ${project.street || project.city || project.state ? `<p class="text-sm text-gray-600 mt-1">${[project.street, project.city, project.state].filter(Boolean).join(', ')}</p>` : ''}
@@ -192,19 +261,71 @@ const MapView = ({ user, embedMode = false, embedParams = {} }) => {
               .setHTML(popupContent)
           )
           .addTo(map.current);
+
+        markersRef.current.push(marker);
       } catch (err) {
         console.error('Error creating marker for project:', project, err);
       }
     });
+    
+    console.log('Finished adding markers, total markers now:', markersRef.current.length);
+  }, [projects, mapInitialized]);
 
-    // Cleanup function
+  // Set up global function for image modal
+  useEffect(() => {
+    window.openImageModal = (src, alt) => {
+      console.log('Opening image modal:', src, alt);
+      setImageModal({ isOpen: true, src, alt });
+    };
+
+    // Listen for custom events from popup images
+    const handleImageModalEvent = (event) => {
+      console.log('Received openImageModal event:', event.detail);
+      // Add a small delay to prevent immediate closing
+      setTimeout(() => {
+        setImageModal({ isOpen: true, src: event.detail.src, alt: event.detail.alt });
+      }, 10);
+    };
+
+    document.addEventListener('openImageModal', handleImageModalEvent);
+
     return () => {
-      if (map.current) {
-        map.current.remove();
-        map.current = null;
+      delete window.openImageModal;
+      document.removeEventListener('openImageModal', handleImageModalEvent);
+    };
+  }, []);
+
+  // Debug modal state changes
+  useEffect(() => {
+    console.log('📱 Image modal state changed:', imageModal);
+  }, [imageModal]);
+
+  // Debug mapInitialized changes
+  useEffect(() => {
+    console.log('🗺️ mapInitialized changed:', mapInitialized);
+  }, [mapInitialized]);
+
+  // Prevent map clicks from interfering when modal is open
+  useEffect(() => {
+    if (!map.current || !mapInitialized) return;
+
+    const handleMapClick = (e) => {
+      if (imageModal.isOpen) {
+        console.log('Preventing map click while modal is open');
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
       }
     };
-  }, [projects, loading, error]);
+
+    map.current.on('click', handleMapClick);
+
+    return () => {
+      if (map.current) {
+        map.current.off('click', handleMapClick);
+      }
+    };
+  }, [imageModal.isOpen, mapInitialized]);
 
   if (loading) {
     return (
@@ -239,7 +360,7 @@ const MapView = ({ user, embedMode = false, embedParams = {} }) => {
       {/* Image Modal - only show in non-embed mode */}
       {!embedMode && imageModal.isOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50" onClick={() => setImageModal({ isOpen: false, src: '', alt: '' })}>
-          <div className="relative max-w-4xl max-h-screen p-4">
+          <div className="relative max-w-4xl max-h-screen p-4" onClick={(e) => e.stopPropagation()}>
             <img
               src={imageModal.src}
               alt={imageModal.alt}

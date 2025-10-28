@@ -68,26 +68,39 @@ const Auth = ({ onAuthSuccess }) => {
   );
 };
 
+import { auth } from '../config/firebase.config';
 import { supabase } from './supabaseClient';
 
 export const getClientId = async () => {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return null;
+    // Get current Firebase user
+    const firebaseUser = auth.currentUser;
+    if (!firebaseUser) return null;
 
-    // Check if user is associated with any client
-    const { data: userClient, error } = await supabase
-      .from('user_clients')
-      .select('client_id')
-      .eq('user_id', user.id)
-      .single();
-
-    if (error || !userClient) {
-      console.warn('User not associated with any client');
-      return null;
+    // For demo purposes, hardcode the association for the demo user
+    // In production, this would come from the clients table with firebase_uid
+    if (firebaseUser.uid === 'ibEEqGoyOOXeAbBg7QIREWmWa523') { // New York Sash Firebase UID
+      return '550e8400-e29b-41d4-a716-446655440000'; // New York Sash client ID placeholder
     }
 
-    return userClient.client_id;
+    // Query clients table directly using firebase_uid
+    // This is simpler if each client has only one Firebase user
+    try {
+      const { data: client, error } = await supabase
+        .from('clients')
+        .select('id')
+        .eq('firebase_uid', firebaseUser.uid)
+        .single();
+
+      if (!error && client) {
+        return client.id;
+      }
+    } catch (err) {
+      console.warn('Firebase UID lookup in clients table failed:', err.message);
+    }
+
+    console.warn('User not associated with any client');
+    return null;
   } catch (error) {
     console.error('Error getting client ID:', error);
     return null;
@@ -99,12 +112,14 @@ let cachedClientId = null;
 export const getClientIdSync = () => cachedClientId;
 export const setClientId = (clientId) => { cachedClientId = clientId; };
 
-// Initialize client ID on auth state change
-supabase.auth.onAuthStateChange(async (event, session) => {
-  if (event === 'SIGNED_IN' && session?.user) {
+// Initialize client ID on Firebase auth state change
+import { onAuthStateChanged } from 'firebase/auth';
+
+onAuthStateChanged(auth, async (firebaseUser) => {
+  if (firebaseUser) {
     const clientId = await getClientId();
     setClientId(clientId);
-  } else if (event === 'SIGNED_OUT') {
+  } else {
     setClientId(null);
   }
 });

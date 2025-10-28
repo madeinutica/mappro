@@ -1,13 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../utils/supabaseClient';
+import { sendPasswordResetEmail } from 'firebase/auth';
+import { auth } from '../config/firebase.config';
 import { useAuth } from '../contexts/AuthContext';
 
 const Auth = ({ onBackToMarketing, onLoginSuccess }) => {
+  const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [companyName, setCompanyName] = useState('');
+  const [domain, setDomain] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const { signIn, user, client } = useAuth();
+  const { signIn, signUp, user, client } = useAuth();
 
   // Listen for auth state changes to handle client validation errors
   useEffect(() => {
@@ -45,8 +49,7 @@ const Auth = ({ onBackToMarketing, onLoginSuccess }) => {
     setLoading(true);
     setError('');
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email);
-      if (error) throw error;
+      await sendPasswordResetEmail(auth, email);
       setError('Password reset email sent. Check your inbox.');
     } catch (error) {
       setError(error.message || 'Failed to send reset email');
@@ -57,24 +60,38 @@ const Auth = ({ onBackToMarketing, onLoginSuccess }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('handleSubmit called with:', { email, password });
+    console.log('handleSubmit called with:', { email, password, isLogin, companyName, domain });
     setLoading(true);
     setError(''); // Clear any previous errors
+
     try {
-      console.log('Calling signIn...');
-      const { error, data } = await signIn(email, password);
-      console.log('signIn result:', { error, data });
-      if (error) {
-        setError(error.message);
-        setLoading(false); // Set loading to false if there's an immediate error
-      } else if (data && data.session) {
-        console.log('Sign in successful, session:', data.session);
+      if (isLogin) {
+        console.log('Calling signIn...');
+        const { error, data } = await signIn(email, password);
+        console.log('signIn result:', { error, data });
+        if (error) {
+          setError(error.message);
+          setLoading(false); // Set loading to false if there's an immediate error
+        } else if (data && data.session) {
+          console.log('Sign in successful, session:', data.session);
+        } else {
+          console.log('Sign in returned no error and no session. Data:', data);
+        }
       } else {
-        console.log('Sign in returned no error and no session. Data:', data);
+        console.log('Calling signUp...');
+        const { error, data } = await signUp(email, password, companyName, domain);
+        console.log('signUp result:', { error, data });
+        if (error) {
+          setError(error.message);
+          setLoading(false);
+        } else if (data) {
+          console.log('Sign up successful:', data);
+          // Registration successful, user should be automatically logged in
+        }
       }
     } catch (error) {
-      console.log('Sign in error (catch):', error);
-      setError(error.message || 'Sign in failed');
+      console.log('Auth error (catch):', error);
+      setError(error.message || `${isLogin ? 'Sign in' : 'Sign up'} failed`);
       setLoading(false);
     }
     // Add a final log to confirm function exit
@@ -86,10 +103,10 @@ const Auth = ({ onBackToMarketing, onLoginSuccess }) => {
       <div className="max-w-md w-full space-y-8">
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Sign In
+            {isLogin ? 'Sign In' : 'Create Account'}
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Access your admin panel
+            {isLogin ? 'Access your admin panel' : 'Start your solar project map'}
           </p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
@@ -118,14 +135,49 @@ const Auth = ({ onBackToMarketing, onLoginSuccess }) => {
                 id="password"
                 name="password"
                 type="password"
-                autoComplete="current-password"
+                autoComplete={isLogin ? "current-password" : "new-password"}
                 required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                className={`appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm ${isLogin ? 'rounded-b-md' : ''}`}
                 placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
             </div>
+            {!isLogin && (
+              <>
+                <div>
+                  <label htmlFor="companyName" className="sr-only">
+                    Company Name
+                  </label>
+                  <input
+                    id="companyName"
+                    name="companyName"
+                    type="text"
+                    autoComplete="organization"
+                    required
+                    className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                    placeholder="Company Name"
+                    value={companyName}
+                    onChange={(e) => setCompanyName(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="domain" className="sr-only">
+                    Website Domain
+                  </label>
+                  <input
+                    id="domain"
+                    name="domain"
+                    type="text"
+                    autoComplete="url"
+                    className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                    placeholder="yourwebsite.com (optional)"
+                    value={domain}
+                    onChange={(e) => setDomain(e.target.value)}
+                  />
+                </div>
+              </>
+            )}
           </div>
 
           {error && (
@@ -140,28 +192,40 @@ const Auth = ({ onBackToMarketing, onLoginSuccess }) => {
               disabled={loading}
               className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
             >
-              {loading ? 'Processing...' : 'Sign In'}
+              {loading ? 'Processing...' : (isLogin ? 'Sign In' : 'Create Account')}
             </button>
           </div>
 
           <div className="text-center">
             <button
               type="button"
-              onClick={handleForgotPassword}
-              disabled={loading}
+              onClick={() => setIsLogin(!isLogin)}
               className="text-indigo-600 hover:text-indigo-500 text-sm"
             >
-              Forgot Password?
+              {isLogin ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
             </button>
           </div>
+
+          {isLogin && (
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={handleForgotPassword}
+                disabled={loading}
+                className="text-indigo-600 hover:text-indigo-500 text-sm"
+              >
+                Forgot Password?
+              </button>
+            </div>
+          )}
 
           <div className="text-center">
             <button
               type="button"
-              onClick={onBackToMarketing}
+              onClick={() => setIsLogin(false)}
               className="text-indigo-600 hover:text-indigo-500 text-sm"
             >
-              join the wait list
+              Sign Up
             </button>
           </div>
         </form>

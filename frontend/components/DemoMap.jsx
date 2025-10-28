@@ -97,9 +97,11 @@ const mockProjects = [
 const DemoMap = () => {
   const mapContainer = useRef(null);
   const map = useRef(null);
+  const markersRef = useRef([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [imageModal, setImageModal] = useState({ isOpen: false, src: '', alt: '' });
+  const [mapInitialized, setMapInitialized] = useState(false);
 
   useEffect(() => {
     // Simulate loading delay for demo
@@ -110,11 +112,12 @@ const DemoMap = () => {
     return () => clearTimeout(timer);
   }, []);
 
+  // Initialize map only once
   useEffect(() => {
-    if (loading || error) return;
-    if (map.current) return;
+    if (loading || error || map.current) return;
 
     try {
+      console.log('Initializing demo map...');
       map.current = new mapboxgl.Map({
         container: mapContainer.current,
         style: 'mapbox://styles/mapbox/light-v11',
@@ -124,6 +127,7 @@ const DemoMap = () => {
 
       map.current.on('load', () => {
         console.log('Demo map loaded successfully');
+        setMapInitialized(true);
       });
 
       map.current.on('error', (e) => {
@@ -135,6 +139,24 @@ const DemoMap = () => {
       setError('Failed to initialize demo map');
       return;
     }
+
+    // Cleanup function
+    return () => {
+      if (map.current) {
+        map.current.remove();
+        map.current = null;
+        setMapInitialized(false);
+      }
+    };
+  }, [loading, error]);
+
+  // Add markers when map is ready
+  useEffect(() => {
+    if (!mapInitialized || !map.current) return;
+
+    // Clear existing markers
+    markersRef.current.forEach(marker => marker.remove());
+    markersRef.current = [];
 
     // Add markers for mock projects
     mockProjects.forEach(project => {
@@ -185,19 +207,13 @@ const DemoMap = () => {
               .setHTML(popupContent)
           )
           .addTo(map.current);
+
+        markersRef.current.push(marker);
       } catch (err) {
         console.error('Error creating marker for demo project:', project, err);
       }
     });
-
-    // Cleanup function
-    return () => {
-      if (map.current) {
-        map.current.remove();
-        map.current = null;
-      }
-    };
-  }, [loading, error]);
+  }, [mapInitialized]);
 
   // Set up global function for image modal
   useEffect(() => {
