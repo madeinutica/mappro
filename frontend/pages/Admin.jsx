@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { getProjects, updateProject, deleteProject, uploadPhoto, deletePhoto, addProject } from '../utils/projectApi';
+import { getProjects, updateProject, deleteProject, uploadPhoto, deletePhoto, addProject, getReviews, addReview, updateReview, deleteReview } from '../utils/projectApi';
 import { useAuth } from '../contexts/AuthContext';
 
 const Admin = ({ onMap }) => {
@@ -48,6 +48,10 @@ const Admin = ({ onMap }) => {
   const [adding, setAdding] = useState(false);
   const [addStatus, setAddStatus] = useState(''); // 'creating', 'uploading', 'complete', 'error'
   const [formErrors, setFormErrors] = useState({});
+  const [reviews, setReviews] = useState([]);
+  const [editingReview, setEditingReview] = useState(null);
+  const [newReview, setNewReview] = useState({ author: '', rating: 5, text: '' });
+  const [savingReview, setSavingReview] = useState(false);
   const handleAddInputChange = (field, value) => {
     setAddForm(prev => ({ ...prev, [field]: value }));
     // Clear error when user starts typing
@@ -244,6 +248,24 @@ const Admin = ({ onMap }) => {
     setCurrentPage(1);
   }, [searchTerm]);
 
+  // Load reviews when project is selected
+  useEffect(() => {
+    const loadReviews = async () => {
+      if (selected) {
+        try {
+          const projectReviews = await getReviews(selected);
+          setReviews(projectReviews || []);
+        } catch (error) {
+          console.error('Error loading reviews:', error);
+          setReviews([]);
+        }
+      } else {
+        setReviews([]);
+      }
+    };
+    loadReviews();
+  }, [selected]);
+
   const handleFilterToggle = (status) => {
     if (filterStatus === status) {
       setFilterStatus('all');
@@ -358,6 +380,96 @@ const Admin = ({ onMap }) => {
     } finally {
       setUploading(false);
     }
+  };
+
+  const handleAddReview = async () => {
+    if (!selected || !newReview.author.trim() || !newReview.text.trim()) return;
+
+    // Check if review already exists
+    if (reviews.length > 0) {
+      alert('A review already exists for this project. Please edit the existing review instead.');
+      return;
+    }
+
+    setSavingReview(true);
+    try {
+      const reviewData = {
+        project_id: selected,
+        author: newReview.author.trim(),
+        rating: parseInt(newReview.rating),
+        text: newReview.text.trim()
+      };
+
+      await addReview(reviewData);
+      
+      // Refresh reviews
+      const updatedReviews = await getReviews(selected);
+      setReviews(updatedReviews || []);
+      
+      // Reset form
+      setNewReview({ author: '', rating: 5, text: '' });
+      
+      alert('Review added successfully!');
+    } catch (error) {
+      console.error('Error adding review:', error);
+      alert('Error adding review: ' + error.message);
+    } finally {
+      setSavingReview(false);
+    }
+  };
+
+  const handleUpdateReview = async () => {
+    if (!editingReview) return;
+
+    setSavingReview(true);
+    try {
+      const updates = {
+        author: editingReview.author.trim(),
+        rating: parseInt(editingReview.rating),
+        text: editingReview.text.trim()
+      };
+
+      await updateReview(editingReview.id, updates);
+      
+      // Refresh reviews
+      const updatedReviews = await getReviews(selected);
+      setReviews(updatedReviews || []);
+      
+      // Exit edit mode
+      setEditingReview(null);
+      
+      alert('Review updated successfully!');
+    } catch (error) {
+      console.error('Error updating review:', error);
+      alert('Error updating review: ' + error.message);
+    } finally {
+      setSavingReview(false);
+    }
+  };
+
+  const handleDeleteReview = async (reviewId) => {
+    if (!window.confirm('Are you sure you want to delete this review?')) return;
+
+    try {
+      await deleteReview(reviewId);
+      
+      // Refresh reviews
+      const updatedReviews = await getReviews(selected);
+      setReviews(updatedReviews || []);
+      
+      alert('Review deleted successfully!');
+    } catch (error) {
+      console.error('Error deleting review:', error);
+      alert('Error deleting review: ' + error.message);
+    }
+  };
+
+  const startEditingReview = (review) => {
+    setEditingReview({ ...review });
+  };
+
+  const cancelEditingReview = () => {
+    setEditingReview(null);
   };
 
   // Calculate dashboard stats
@@ -1250,6 +1362,157 @@ const Admin = ({ onMap }) => {
                         Published
                       </label>
                     </div>
+                  </div>
+
+                  {/* Reviews */}
+                  <div className="space-y-4 md:col-span-2">
+                    <h3 className="text-lg font-semibold text-gray-800">Review</h3>
+                    
+                    {/* Existing Review */}
+                    {reviews.length > 0 ? (
+                      <div className="space-y-3">
+                        <h4 className="text-md font-medium text-gray-700">Current Review</h4>
+                        {reviews.slice(0, 1).map(review => (
+                          <div key={review.id} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                            {editingReview?.id === review.id ? (
+                              <div className="space-y-3">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Author</label>
+                                    <input
+                                      type="text"
+                                      value={editingReview.author}
+                                      onChange={(e) => setEditingReview(prev => ({ ...prev, author: e.target.value }))}
+                                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Rating</label>
+                                    <select
+                                      value={editingReview.rating}
+                                      onChange={(e) => setEditingReview(prev => ({ ...prev, rating: parseInt(e.target.value) }))}
+                                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    >
+                                      {[1, 2, 3, 4, 5].map(rating => (
+                                        <option key={rating} value={rating}>{rating} Star{rating !== 1 ? 's' : ''}</option>
+                                      ))}
+                                    </select>
+                                  </div>
+                                </div>
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700 mb-1">Review Text</label>
+                                  <textarea
+                                    value={editingReview.text}
+                                    onChange={(e) => setEditingReview(prev => ({ ...prev, text: e.target.value }))}
+                                    rows={3}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                  />
+                                </div>
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={handleUpdateReview}
+                                    disabled={savingReview}
+                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                                  >
+                                    {savingReview ? 'Saving...' : 'Save Changes'}
+                                  </button>
+                                  <button
+                                    onClick={cancelEditingReview}
+                                    className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div>
+                                <div className="flex items-center justify-between mb-2">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-sm text-gray-600">Author: {review.author}</span>
+                                    <div className="flex items-center">
+                                      {[...Array(5)].map((_, i) => (
+                                        <svg
+                                          key={i}
+                                          className={`w-4 h-4 ${i < review.rating ? 'text-yellow-400' : 'text-gray-300'}`}
+                                          fill="currentColor"
+                                          viewBox="0 0 20 20"
+                                        >
+                                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                        </svg>
+                                      ))}
+                                    </div>
+                                  </div>
+                                  <div className="flex gap-2">
+                                    <button
+                                      onClick={() => startEditingReview(review)}
+                                      className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+                                    >
+                                      Edit
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeleteReview(review.id)}
+                                      className="px-3 py-1 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200"
+                                    >
+                                      Delete
+                                    </button>
+                                  </div>
+                                </div>
+                                <p className="text-gray-700 italic">"{review.text}"</p>
+                                <p className="text-xs text-gray-500 mt-1">
+                                  {new Date(review.created_at).toLocaleDateString()}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      /* Add New Review */
+                      <div className="space-y-3">
+                        <h4 className="text-md font-medium text-gray-700">Add Review</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Author</label>
+                            <input
+                              type="text"
+                              value={newReview.author}
+                              onChange={(e) => setNewReview(prev => ({ ...prev, author: e.target.value }))}
+                              placeholder="Customer name"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Rating</label>
+                            <select
+                              value={newReview.rating}
+                              onChange={(e) => setNewReview(prev => ({ ...prev, rating: parseInt(e.target.value) }))}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                              {[1, 2, 3, 4, 5].map(rating => (
+                                <option key={rating} value={rating}>{rating} Star{rating !== 1 ? 's' : ''}</option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Review Text</label>
+                          <textarea
+                            value={newReview.text}
+                            onChange={(e) => setNewReview(prev => ({ ...prev, text: e.target.value }))}
+                            placeholder="Write the review text here..."
+                            rows={3}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
+                        <button
+                          onClick={handleAddReview}
+                          disabled={savingReview || !newReview.author.trim() || !newReview.text.trim()}
+                          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {savingReview ? 'Adding...' : 'Add Review'}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
