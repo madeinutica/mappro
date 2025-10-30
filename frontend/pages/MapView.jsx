@@ -186,9 +186,9 @@ const MapView = ({ user, embedMode = false, embedParams = {} }) => {
 
         console.log('Creating marker at:', lng, lat);
 
-        // Create a red marker using a custom element
+        // Create a blue marker using a custom element
         const el = document.createElement('div');
-        el.style.background = '#d32f2f';
+        el.style.background = '#2C8BC7';
         el.style.width = '24px';
         el.style.height = '24px';
         el.style.borderRadius = '50%';
@@ -235,7 +235,7 @@ const MapView = ({ user, embedMode = false, embedParams = {} }) => {
         }
 
         const popupContent = `
-          <div class="max-w-xs bg-white p-2">
+          <div class="max-w-xs bg-neutral-cream p-2">
             <h3 class="font-semibold text-xl text-gray-900 mb-1">${project.name || 'Unnamed Project'}</h3>
             ${project.description ? `<p class="mb-2 text-gray-700 text-sm">${project.description}</p>` : ''}
             ${categoryInfo.length > 0 ? `<div class="mb-1 flex flex-wrap gap-1">${categoryInfo.map(cat => `<span class=\"bg-blue-50 text-blue-700 text-xs px-2 py-0.5\">${cat}</span>`).join('')}</div>` : ''}
@@ -318,37 +318,37 @@ const MapView = ({ user, embedMode = false, embedParams = {} }) => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <div className="text-lg">Loading projects...</div>
+      <div className="flex items-center justify-center h-96 font-lato">
+        <div className="text-lg text-primary-700">Loading projects...</div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <div className="text-red-600">Error loading projects: {error}</div>
+      <div className="flex items-center justify-center h-96 font-lato">
+        <div className="text-accent-600">Error loading projects: {error}</div>
       </div>
     );
   }
 
   return (
-    <div className={`w-full ${embedMode ? 'h-screen' : 'h-screen relative'}`}>
+    <div className={`w-full ${embedMode ? 'h-screen' : 'h-screen relative'} font-inter`}>
       {!embedMode && loading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-white z-10">
-          <div className="text-lg">Loading map...</div>
+        <div className="absolute inset-0 flex items-center justify-center bg-neutral-cream z-10 font-lato">
+          <div className="text-lg text-primary-700">Loading map...</div>
         </div>
       )}
       {!embedMode && error && (
-        <div className="absolute inset-0 flex items-center justify-center bg-white z-10">
-          <div className="text-red-600">Error: {error}</div>
+        <div className="absolute inset-0 flex items-center justify-center bg-neutral-cream z-10 font-lato">
+          <div className="text-accent-600">Error: {error}</div>
         </div>
       )}
       <div ref={mapContainer} className="w-full h-screen" style={{ minHeight: '400px' }} />
 
       {/* Image Modal - only show in non-embed mode */}
       {!embedMode && imageModal.isOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50" onClick={() => setImageModal({ isOpen: false, src: '', alt: '' })}>
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 font-lato" onClick={() => setImageModal({ isOpen: false, src: '', alt: '' })}>
           <div className="relative max-w-4xl max-h-screen p-4" onClick={(e) => e.stopPropagation()}>
             <img
               src={imageModal.src}

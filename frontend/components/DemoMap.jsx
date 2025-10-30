@@ -166,7 +166,7 @@ const DemoMap = () => {
 
         // Create a blue marker for demo
         const el = document.createElement('div');
-        el.style.background = '#2563eb';
+        el.style.background = '#2C8BC7';
         el.style.width = '24px';
         el.style.height = '24px';
         el.style.borderRadius = '50%';

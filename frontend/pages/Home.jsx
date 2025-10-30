@@ -60,7 +60,7 @@ const Home = () => {
         demoProjects.forEach(project => {
           console.log('Home: Adding marker for project:', project.name);
           const el = document.createElement('div');
-          el.style.background = '#3B82F6';
+          el.style.background = '#2C8BC7';
           el.style.width = '20px';
           el.style.height = '20px';
           el.style.borderRadius = '50%';
@@ -104,31 +104,31 @@ const Home = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+  <div className="min-h-screen bg-gradient-to-br from-primary-50 to-blue-100 font-inter">
       {/* Header */}
-      <header className="bg-white shadow-sm">
+  <header className="bg-neutral-cream shadow-sm font-lato">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-gray-900">MapPro</h1>
-              <span className="ml-2 text-sm text-gray-500">Interactive Project Mapping</span>
+              <img src="/assets/logos/mappro-logo.png" alt="MapPro" className="h-8 w-auto" />
+              <span className="ml-2 text-sm text-neutral-500">Interactive Project Mapping</span>
             </div>
             <div className="flex items-center space-x-4">
               <button
                 onClick={() => navigate('/auth')}
-                className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
+                className="text-neutral-600 hover:text-primary-900 px-3 py-2 rounded-md text-sm font-medium"
               >
                 Demo
               </button>
               <button
                 onClick={() => navigate('/auth')}
-                className="text-blue-600 hover:text-blue-700 px-3 py-2 rounded-md text-sm font-medium"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-md text-sm font-medium"
               >
                 Login
               </button>
               <button
                 onClick={() => navigate('/auth')}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+                className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md text-sm font-medium"
               >
                 Sign Up
               </button>
@@ -138,27 +138,27 @@ const Home = () => {
       </header>
 
       {/* Hero Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8">
+  <section className="py-20 px-4 sm:px-6 lg:px-8 font-inter">
         <div className="max-w-7xl mx-auto">
           <div className="text-center">
-            <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
+            <h1 className="text-4xl md:text-6xl font-bold text-primary-900 mb-6">
               Transform Your Projects with
-              <span className="text-blue-600 block">Interactive Mapping</span>
+              <span className="text-primary-600 block">Interactive Mapping</span>
             </h1>
-            <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
+            <p className="text-xl text-neutral-600 mb-8 max-w-3xl mx-auto">
               Create stunning interactive maps for your construction projects, real estate developments,
               and location-based services.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button
                 onClick={() => navigate('/auth')}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg text-lg font-semibold shadow-lg"
+                className="bg-primary-600 hover:bg-primary-700 text-white px-8 py-3 rounded-lg text-lg font-semibold shadow-lg"
               >
                 Try Demo
               </button>
               <button
                 onClick={() => navigate('/auth')}
-                className="border-2 border-blue-600 text-blue-600 hover:bg-blue-50 px-8 py-3 rounded-lg text-lg font-semibold"
+                className="border-2 border-primary-600 text-primary-600 hover:bg-primary-50 px-8 py-3 rounded-lg text-lg font-semibold"
               >
                 Get Started
               </button>
@@ -168,25 +168,25 @@ const Home = () => {
       </section>
 
       {/* Demo Map Section */}
-      <section className="py-16 bg-white">
+  <section className="py-16 bg-neutral-cream font-lato">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">See MapPro in Action</h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            <h2 className="text-3xl font-bold text-primary-900 mb-4">See MapPro in Action</h2>
+            <p className="text-xl text-neutral-600 max-w-3xl mx-auto">
               Explore our interactive demo map showing sample construction projects across New York City.
               Click on the markers to learn more about each project.
             </p>
           </div>
-          <div className="bg-gray-100 rounded-lg overflow-hidden shadow-lg">
+          <div className="bg-neutral-100 rounded-lg overflow-hidden shadow-lg">
             <div ref={mapContainer} className="w-full h-96" />
           </div>
           <div className="mt-8 text-center">
-            <p className="text-gray-600 mb-4">
+            <p className="text-neutral-600 mb-4">
               Ready to create your own interactive project maps?
             </p>
             <button
               onClick={() => navigate('/auth')}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg text-lg font-semibold shadow-lg"
+              className="bg-primary-600 hover:bg-primary-700 text-white px-6 py-3 rounded-lg text-lg font-semibold shadow-lg"
             >
               Start Mapping Your Projects
             </button>
@@ -195,7 +195,7 @@ const Home = () => {
       </section>
 
       {/* Simple CTA Section */}
-      <section className="py-16 bg-blue-600">
+  <section className="py-16 bg-primary-600 font-inter">
         <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
           <h2 className="text-3xl font-bold text-white mb-4">Ready to Get Started?</h2>
           <p className="text-xl text-blue-100 mb-8">
@@ -204,13 +204,13 @@ const Home = () => {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button
               onClick={() => navigate('/auth')}
-              className="bg-white text-blue-600 hover:bg-gray-100 px-8 py-3 rounded-lg text-lg font-semibold"
+              className="bg-neutral-cream text-primary-600 hover:bg-neutral-100 px-8 py-3 rounded-lg text-lg font-semibold"
             >
               Try Free Demo
             </button>
             <button
               onClick={() => navigate('/auth')}
-              className="border-2 border-white text-white hover:bg-white hover:text-blue-600 px-8 py-3 rounded-lg text-lg font-semibold"
+              className="border-2 border-white text-white hover:bg-white hover:text-primary-600 px-8 py-3 rounded-lg text-lg font-semibold"
             >
               Start Free Trial
             </button>

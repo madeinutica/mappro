@@ -56,7 +56,7 @@ const App = () => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary-600"></div>
       </div>
     );
   }
@@ -68,9 +68,12 @@ const App = () => {
       case 'demo':
         return (
           <div className="min-h-screen bg-gray-100">
-            <div className="p-4 flex justify-between items-center bg-white shadow-sm">
-              <div>
-                <h1 className="text-2xl font-bold text-blue-600">Map Pro - Demo</h1>
+            <div className="p-4 flex justify-between items-center bg-neutral-cream shadow-sm">
+              <div className="flex items-center">
+                <img src="/assets/logos/mappro-logo.png" alt="MapPro" className="h-8 w-auto mr-3" />
+                <div>
+                  <h1 className="text-2xl font-bold text-primary-600">Map Pro - Demo</h1>
+                </div>
               </div>
               <div className="flex items-center space-x-4">
                 <button
@@ -81,7 +84,7 @@ const App = () => {
                 </button>
                 <button
                   onClick={handleLogin}
-                  className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-lg hover:bg-blue-700 transition-colors"
+                  className="px-4 py-2 bg-primary-600 text-white font-semibold rounded-lg shadow-lg hover:bg-primary-700 transition-colors"
                 >
                   {user && client ? 'Admin Panel' : 'Login'}
                 </button>
@@ -98,11 +101,13 @@ const App = () => {
         }
         return (
           <div className="min-h-screen bg-gray-100">
-            <div className="p-4 flex justify-between items-center bg-white shadow-sm">
-              <div>
-                <h1 className="text-2xl font-bold text-blue-600">Map Pro - Admin</h1>
-                <p className="text-sm text-gray-600">Welcome, {user.email}</p>
-                {!client && <p className="text-sm text-orange-600">⚠️ No client association found - limited access</p>}
+            <div className="p-4 flex justify-between items-center bg-neutral-cream shadow-sm">
+              <div className="flex items-center">
+                <div>
+                  <h1 className="text-2xl font-bold text-primary-600">Map Pro - Admin</h1>
+                  <p className="text-sm text-neutral-600">Welcome, {user.email}</p>
+                  {!client && <p className="text-sm text-accent-600">⚠️ No client association found - limited access</p>}
+                </div>
               </div>
               <div className="flex items-center space-x-4">
                 <button
@@ -119,9 +124,11 @@ const App = () => {
       case 'map':
         return (
           <div className="min-h-screen bg-gray-100">
-            <div className="p-4 flex justify-between items-center bg-white shadow-sm">
-              <div>
-                <h1 className="text-2xl font-bold text-blue-600">Map Pro - Interactive Map</h1>
+            <div className="p-4 flex justify-between items-center bg-neutral-cream shadow-sm">
+              <div className="flex items-center">
+                <div>
+                  <h1 className="text-2xl font-bold text-primary-600">Map Pro - Interactive Map</h1>
+                </div>
               </div>
               <div className="flex items-center space-x-4">
                 <button
@@ -132,7 +139,7 @@ const App = () => {
                 </button>
                 <button
                   onClick={handleLogin}
-                  className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-lg hover:bg-blue-700 transition-colors"
+                  className="px-4 py-2 bg-primary-600 text-white font-semibold rounded-lg shadow-lg hover:bg-primary-700 transition-colors"
                 >
                   {user && client ? 'Admin Panel' : 'Login'}
                 </button>
