@@ -541,7 +541,7 @@ const Admin = ({ onMap }) => {
                 {formErrors.name && <p className="text-red-500 text-xs mt-1">{formErrors.name}</p>}
               </div>
               <div>
-                <label className="block text-sm font-medium text-neutral-dark mb-1">Description</label>
+                <label className="block text-sm font-medium text-neutral-dark mb-1">Details</label>
                 <textarea value={addForm.description} onChange={e => handleAddInputChange('description', e.target.value)} rows={2} className="w-full px-3 py-2 border border-accent rounded-md focus:outline-none focus:ring-2 focus:ring-primary" />
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -1125,7 +1125,7 @@ const Admin = ({ onMap }) => {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Details</label>
                       <textarea
                         value={formData.description || ''}
                         onChange={(e) => handleInputChange('description', e.target.value)}

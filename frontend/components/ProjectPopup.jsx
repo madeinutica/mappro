@@ -4,6 +4,13 @@ const ProjectPopup = ({ project }) => (
   <div className="max-w-xs bg-neutral-cream p-2">
     <h3 className="font-semibold text-lg text-gray-900 mb-1 leading-tight">{project.name || 'Unnamed Project'}</h3>
     
+    {/* City and Zip */}
+    {(project.city || project.zip) && (
+      <div className="text-sm text-gray-600 mb-2">
+        {[project.city, project.zip].filter(Boolean).join(', ')}
+      </div>
+    )}
+    
     {/* Reviews */}
     {project.reviews && project.reviews.length > 0 && (
       <div className="mb-2">
@@ -61,6 +68,14 @@ const ProjectPopup = ({ project }) => (
             {sub}
           </span>
         ))}
+      </div>
+    )}
+    
+    {/* Product Details */}
+    {project.description && (
+      <div className="mb-2">
+        <div className="text-xs font-medium text-gray-700 mb-1">Product Details</div>
+        <div className="text-sm text-gray-600">{project.description}</div>
       </div>
     )}
     
