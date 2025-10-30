@@ -30,7 +30,7 @@ export async function getClientId() {
   }
 }
 
-export async function getProjects(includeUnpublished = false, embedClientId = null, authClientId = null, limit = 5000) {
+export async function getProjects(includeUnpublished = false, embedClientId = null, authClientId = null, limit = null) {
   let clientId = embedClientId || authClientId;
 
   if (!clientId && !embedClientId) {
@@ -40,7 +40,7 @@ export async function getProjects(includeUnpublished = false, embedClientId = nu
 
   console.log('getProjects called with:', { includeUnpublished, embedClientId, authClientId, resolvedClientId: clientId, limit });
 
-  let query = supabase.from('projects').select(`
+  let baseQuery = supabase.from('projects').select(`
     *,
     reviews (*)
   `, { count: 'exact' });
@@ -48,29 +48,53 @@ export async function getProjects(includeUnpublished = false, embedClientId = nu
   if (embedClientId) {
     // For embed mode with specific client, show their projects
     if (!includeUnpublished) {
-      query = query.eq('is_published', true);
+      baseQuery = baseQuery.eq('is_published', true);
     }
-    query = query.eq('client_id', embedClientId);
+    baseQuery = baseQuery.eq('client_id', embedClientId);
     console.log('Using embedClientId filter:', embedClientId);
   } else if (clientId) {
     // Authenticated user with client ID - show all their projects
-    query = query.eq('client_id', clientId);
+    baseQuery = baseQuery.eq('client_id', clientId);
     console.log('Using authClientId filter:', clientId);
   } else {
     // Unauthenticated user - show only published projects
-    query = query.eq('is_published', true);
+    baseQuery = baseQuery.eq('is_published', true);
     console.log('No client filter - showing only published projects');
   }
 
-  // Apply limit to prevent excessive data loading
-  if (limit) {
-    query = query.limit(limit);
+  // If a specific limit is requested, use it
+  if (limit && limit > 0 && limit <= 1000) {
+    const { data, error, count } = await baseQuery.limit(limit);
+    if (error) throw error;
+    console.log('getProjects returning:', data?.length || 0, 'projects (total available:', count, ')');
+    return data;
   }
 
-  const { data, error, count } = await query;
-  if (error) throw error;
-  console.log('getProjects returning:', data?.length || 0, 'projects (total available:', count, ')');
-  return data;
+  // For unlimited or high limits, fetch all using pagination
+  const allData = [];
+  let from = 0;
+  const batchSize = 1000;
+
+  while (true) {
+    const { data, error, count } = await baseQuery
+      .range(from, from + batchSize - 1);
+
+    if (error) throw error;
+
+    if (!data || data.length === 0) break;
+
+    allData.push(...data);
+    from += batchSize;
+
+    // If we got less than batchSize, we've reached the end
+    if (data.length < batchSize) break;
+
+    // Safety check to prevent infinite loops
+    if (from > 100000) break;
+  }
+
+  console.log('getProjects returning:', allData.length, 'projects (fetched in batches)');
+  return allData;
 }
 
 export async function addProject(project, clientId) {

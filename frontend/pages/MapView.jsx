@@ -188,15 +188,44 @@ const MapView = ({ user, embedMode = false, embedParams = {}, clientId }) => {
 
         console.log('Creating marker at:', lng, lat);
 
-        // Create a blue marker using a custom element
+        // Get marker customization from embed params or use defaults
+        const markerColor = embedParams?.markerColor || '#2563eb';
+        const markerStyle = embedParams?.markerStyle || 'circle';
+
+        // Create a custom marker element based on style
         const el = document.createElement('div');
-        el.style.background = '#2C8BC7';
+        
+        // Set base styles
         el.style.width = '24px';
         el.style.height = '24px';
-        el.style.borderRadius = '50%';
         el.style.boxShadow = '0 0 4px rgba(0,0,0,0.2)';
         el.style.border = '2px solid #fff';
         el.style.cursor = 'pointer';
+        el.style.backgroundColor = markerColor;
+
+        // Apply style-specific properties
+        switch (markerStyle) {
+          case 'circle':
+            el.style.borderRadius = '50%';
+            break;
+          case 'square':
+            el.style.borderRadius = '0';
+            break;
+          case 'triangle':
+            el.style.borderRadius = '0';
+            el.style.clipPath = 'polygon(50% 0%, 0% 100%, 100% 100%)';
+            break;
+          case 'diamond':
+            el.style.borderRadius = '0';
+            el.style.clipPath = 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)';
+            break;
+          case 'pin':
+            el.style.borderRadius = '50% 50% 50% 50% / 60% 60% 40% 40%';
+            el.style.clipPath = 'polygon(50% 0%, 85% 35%, 70% 65%, 50% 100%, 30% 65%, 15% 35%)';
+            break;
+          default:
+            el.style.borderRadius = '50%'; // default to circle
+        }
 
         // Build popup content with project details
         const categoryInfo = [];

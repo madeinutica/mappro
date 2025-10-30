@@ -8,7 +8,7 @@ import { useAuth } from './contexts/AuthContext';
 
 const App = () => {
   const [currentView, setCurrentView] = useState('marketing'); // 'marketing', 'demo', 'admin', 'map', 'embed', 'auth'
-  const [embedParams, setEmbedParams] = useState({});
+  const [mapCustomization, setMapCustomization] = useState({ markerColor: '#2563eb', markerStyle: 'circle' });
   const { user, client, loading } = useAuth();
 
   useEffect(() => {
@@ -18,10 +18,12 @@ const App = () => {
     const projectId = urlParams.get('project');
     const filter = urlParams.get('filter');
     const clientId = urlParams.get('client');
+    const markerColor = urlParams.get('markerColor');
+    const markerStyle = urlParams.get('markerStyle');
 
     if (embed === 'true') {
       setCurrentView('embed');
-      setEmbedParams({ projectId, filter, clientId });
+      setEmbedParams({ projectId, filter, clientId, markerColor, markerStyle });
     }
   }, []);
 
@@ -48,7 +50,10 @@ const App = () => {
     setCurrentView('signup');
   };
 
-  const handleMap = () => {
+  const handleMap = (markerColor, markerStyle) => {
+    if (markerColor && markerStyle) {
+      setMapCustomization({ markerColor, markerStyle });
+    }
     setCurrentView('map');
   };
 
@@ -151,7 +156,7 @@ const App = () => {
                 </button>
               </div>
             </div>
-            <MapView clientId={client?.clients?.id} />
+            <MapView clientId={client?.clients?.id} embedParams={mapCustomization} />
           </div>
         );
       case 'embed':

@@ -53,6 +53,8 @@ const Admin = ({ onMap }) => {
   const [newReview, setNewReview] = useState({ author: '', rating: 5, text: '' });
   const [savingReview, setSavingReview] = useState(false);
   const [visibleCategories, setVisibleCategories] = useState(1);
+  const [embedMarkerColor, setEmbedMarkerColor] = useState('#2563eb');
+  const [embedMarkerStyle, setEmbedMarkerStyle] = useState('circle');
   const handleAddInputChange = (field, value) => {
     setAddForm(prev => ({ ...prev, [field]: value }));
     // Clear error when user starts typing
@@ -691,9 +693,9 @@ const Admin = ({ onMap }) => {
         </div>
       )}
       {/* Welcome Header */}
-      <div className="bg-gradient-to-r from-primary to-secondary text-white rounded-xl p-8">
+      <div className="bg-blue-600 text-white rounded-xl p-8">
         <h1 className="text-3xl font-bold mb-2">Welcome to Mapro Admin</h1>
-        <p className="text-accent">Manage your interactive map projects and embed codes</p>
+        <p className="text-blue-100">Manage your interactive map projects and embed codes</p>
       </div>
 
       {/* Stats Cards */}
@@ -837,7 +839,7 @@ const Admin = ({ onMap }) => {
                 📊 Dashboard
               </button>
               <button
-                onClick={onMap}
+                onClick={() => onMap(embedMarkerColor, embedMarkerStyle)}
                 className="w-full text-left px-4 py-2 rounded-lg font-medium transition-colors hover:bg-green-50 text-gray-700"
               >
                 🗺️ View Map
@@ -959,7 +961,7 @@ const Admin = ({ onMap }) => {
                     <div className="bg-gray-50 p-4 rounded-lg">
                       <label className="block text-sm font-medium text-gray-700 mb-2">Embed URL:</label>
                       <code className="block bg-neutral-cream p-3 rounded border text-sm break-all">
-                        {`${window.location.origin}?embed=true&client=${clientId || 'YOUR_CLIENT_ID'}`}
+                        {`${window.location.origin}?embed=true&client=${clientId || 'YOUR_CLIENT_ID'}&markerColor=${encodeURIComponent(embedMarkerColor)}&markerStyle=${embedMarkerStyle}`}
                       </code>
                     </div>
 
@@ -968,14 +970,88 @@ const Admin = ({ onMap }) => {
                         <label className="block text-sm font-medium text-gray-700">HTML Embed Code:</label>
                         <button
                           className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
-                          onClick={() => navigator.clipboard.writeText(`<iframe src="${window.location.origin}?embed=true&client=${clientId || 'YOUR_CLIENT_ID'}" width="100%" height="600" frameborder="0"></iframe>`)}
+                          onClick={() => navigator.clipboard.writeText(`<iframe src="${window.location.origin}?embed=true&client=${clientId || 'YOUR_CLIENT_ID'}&markerColor=${encodeURIComponent(embedMarkerColor)}&markerStyle=${embedMarkerStyle}" width="100%" height="600" frameborder="0"></iframe>`)}
                         >
                           Copy Code
                         </button>
                       </div>
                       <code className="block bg-neutral-cream p-3 rounded border text-sm break-all">
-                        {`<iframe src="${window.location.origin}?embed=true&client=${clientId || 'YOUR_CLIENT_ID'}" width="100%" height="600" frameborder="0"></iframe>`}
+                        {`<iframe src="${window.location.origin}?embed=true&client=${clientId || 'YOUR_CLIENT_ID'}&markerColor=${encodeURIComponent(embedMarkerColor)}&markerStyle=${embedMarkerStyle}" width="100%" height="600" frameborder="0"></iframe>`}
                       </code>
+                    </div>
+
+                    {/* Customization Controls */}
+                    <div className="bg-white border border-gray-200 rounded-lg p-6 mt-6">
+                      <h4 className="text-lg font-semibold text-gray-800 mb-4">Map Customization</h4>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Marker Color */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Marker Color</label>
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="color"
+                              value={embedMarkerColor}
+                              onChange={(e) => setEmbedMarkerColor(e.target.value)}
+                              className="w-12 h-10 border border-gray-300 rounded cursor-pointer"
+                            />
+                            <input
+                              type="text"
+                              value={embedMarkerColor}
+                              onChange={(e) => setEmbedMarkerColor(e.target.value)}
+                              className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                              placeholder="#2563eb"
+                            />
+                          </div>
+                          <p className="text-xs text-gray-500 mt-1">Choose the color for map markers</p>
+                        </div>
+
+                        {/* Marker Style */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Marker Style</label>
+                          <select
+                            value={embedMarkerStyle}
+                            onChange={(e) => setEmbedMarkerStyle(e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          >
+                            <option value="circle">Circle</option>
+                            <option value="square">Square</option>
+                            <option value="triangle">Triangle</option>
+                            <option value="diamond">Diamond</option>
+                            <option value="pin">Location Pin</option>
+                          </select>
+                          <p className="text-xs text-gray-500 mt-1">Select the shape of map markers</p>
+                        </div>
+                      </div>
+
+                      {/* Preview */}
+                      <div className="mt-6">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Preview</label>
+                        <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
+                          <div className="text-sm text-gray-600">Marker:</div>
+                          <div 
+                            className="w-6 h-6 border-2 border-white shadow-sm"
+                            style={{
+                              backgroundColor: embedMarkerColor,
+                              borderRadius: embedMarkerStyle === 'circle' ? '50%' : 
+                                          embedMarkerStyle === 'square' ? '0' : 
+                                          embedMarkerStyle === 'triangle' ? '0' : 
+                                          embedMarkerStyle === 'diamond' ? '0' :
+                                          embedMarkerStyle === 'pin' ? '50% 50% 50% 50% / 60% 60% 40% 40%' : '50%',
+                              clipPath: embedMarkerStyle === 'triangle' ? 'polygon(50% 0%, 0% 100%, 100% 100%)' : 
+                                       embedMarkerStyle === 'diamond' ? 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)' :
+                                       embedMarkerStyle === 'pin' ? 'polygon(50% 0%, 85% 35%, 70% 65%, 50% 100%, 30% 65%, 15% 35%)' : 'none'
+                            }}
+                          ></div>
+                          <div className="text-sm text-gray-600">
+                            {embedMarkerStyle === 'circle' ? 'Circle' :
+                             embedMarkerStyle === 'square' ? 'Square' :
+                             embedMarkerStyle === 'triangle' ? 'Triangle' :
+                             embedMarkerStyle === 'diamond' ? 'Diamond' :
+                             embedMarkerStyle === 'pin' ? 'Location Pin' : 'Unknown'} • {embedMarkerColor}
+                          </div>
+                        </div>
+                      </div>
                     </div>
 
                     <div className="mt-4 p-4 bg-blue-50 rounded-lg">
@@ -984,6 +1060,8 @@ const Admin = ({ onMap }) => {
                         <li>• <code>width</code> and <code>height</code>: Adjust iframe dimensions</li>
                         <li>• <code>project=PROJECT_ID</code>: Show only a specific project</li>
                         <li>• <code>filter=published</code>: Only show published projects (default)</li>
+                        <li>• <code>markerColor=HEX_COLOR</code>: Set marker color (e.g., #2563eb)</li>
+                        <li>• <code>markerStyle=STYLE</code>: Set marker style (circle, square, triangle, diamond)</li>
                       </ul>
                     </div>
                   </div>
