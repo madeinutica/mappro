@@ -24,7 +24,9 @@ const App = () => {
 
   const [currentView, setCurrentView] = useState(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    return urlParams.get('embed') === 'true' ? 'embed' : 'marketing';
+    const embed = urlParams.get('embed');
+    const client = urlParams.get('client');
+    return (embed === 'true' && client) ? 'embed' : 'marketing';
   });
   const [mapCustomization, setMapCustomization] = useState({ markerColor: '#2563eb', markerStyle: 'circle' });
   const [embedParams, setEmbedParams] = useState(getInitialEmbedParams);
