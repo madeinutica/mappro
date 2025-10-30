@@ -3,6 +3,8 @@ import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { MAPBOX_TOKEN } from '../config/mapbox.config';
 import { getProjects, getClientInfo } from '../utils/projectApi';
+import ProjectPopup from '../components/ProjectPopup';
+import { renderToString } from 'react-dom/server';
 
 console.log('MAPBOX_TOKEN:', MAPBOX_TOKEN);
 mapboxgl.accessToken = MAPBOX_TOKEN;
@@ -234,14 +236,14 @@ const MapView = ({ user, embedMode = false, embedParams = {}, clientId }) => {
           subCategoryInfo.push(project['Sub Category 3']);
         }
 
-        const popupContent = `
-          <div class="max-w-xs bg-neutral-cream p-2">
-            <h3 class="font-semibold text-xl text-gray-900 mb-1">${project.name || 'Unnamed Project'}</h3>
-            ${project.description ? `<p class="mb-2 text-gray-700 text-sm">${project.description}</p>` : ''}
-            ${categoryInfo.length > 0 ? `<div class="mb-1 flex flex-wrap gap-1">${categoryInfo.map(cat => `<span class=\"bg-blue-50 text-blue-700 text-xs px-2 py-0.5\">${cat}</span>`).join('')}</div>` : ''}
-            ${subCategoryInfo.length > 0 ? `<div class="mb-1 flex flex-wrap gap-1">${subCategoryInfo.map(sub => `<span class=\"bg-green-50 text-green-700 text-xs px-2 py-0.5\">${sub}</span>`).join('')}</div>` : ''}
-          </div>
-        `;
+        // Create enhanced project object with category info
+        const enhancedProject = {
+          ...project,
+          categoryInfo,
+          subCategoryInfo
+        };
+
+        const popupContent = renderToString(<ProjectPopup project={enhancedProject} />);
 
         const marker = new mapboxgl.Marker({ element: el })
           .setLngLat([lng, lat])
