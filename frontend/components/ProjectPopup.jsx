@@ -7,32 +7,9 @@ const ProjectPopup = ({ project }) => (
       <p className="mb-2 text-gray-700 text-sm">{project.description}</p>
     )}
     
-    {/* Categories */}
-    {project.categoryInfo && project.categoryInfo.length > 0 && (
-      <div className="mb-1 flex flex-wrap gap-1">
-        {project.categoryInfo.map((cat, index) => (
-          <span key={index} className="bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded">
-            {cat}
-          </span>
-        ))}
-      </div>
-    )}
-    
-    {/* Sub-categories */}
-    {project.subCategoryInfo && project.subCategoryInfo.length > 0 && (
-      <div className="mb-2 flex flex-wrap gap-1">
-        {project.subCategoryInfo.map((sub, index) => (
-          <span key={index} className="bg-green-50 text-green-700 text-xs px-2 py-0.5 rounded">
-            {sub}
-          </span>
-        ))}
-      </div>
-    )}
-    
     {/* Reviews */}
     {project.reviews && project.reviews.length > 0 && (
       <div className="mb-2">
-        <h4 className="font-semibold text-gray-900 mb-1">Review:</h4>
         {project.reviews.slice(0, 1).map((r, i) => (
           <div key={i} className="text-sm">
             {/* Star Rating */}
@@ -64,6 +41,28 @@ const ProjectPopup = ({ project }) => (
               </div>
             )}
           </div>
+        ))}
+      </div>
+    )}
+    
+    {/* Categories */}
+    {project.categoryInfo && project.categoryInfo.length > 0 && (
+      <div className="mb-1 flex flex-wrap gap-1">
+        {project.categoryInfo.map((cat, index) => (
+          <span key={index} className="bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded">
+            {cat}
+          </span>
+        ))}
+      </div>
+    )}
+    
+    {/* Sub-categories */}
+    {project.subCategoryInfo && project.subCategoryInfo.length > 0 && (
+      <div className="mb-2 flex flex-wrap gap-1">
+        {project.subCategoryInfo.map((sub, index) => (
+          <span key={index} className="bg-green-50 text-green-700 text-xs px-2 py-0.5 rounded">
+            {sub}
+          </span>
         ))}
       </div>
     )}
