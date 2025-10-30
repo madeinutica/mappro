@@ -1183,73 +1183,7 @@ const Admin = ({ onMap }) => {
                       </div>
                     </div>
 
-                    {/* Lowercase versions for backward compatibility */}
-                    <div className="mt-6 pt-4 border-t border-gray-200">
-                      <h4 className="text-sm font-medium text-gray-600 mb-3">Legacy Fields (if used)</h4>
-                      
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">category 1</label>
-                          <input
-                            type="text"
-                            value={formData['category 1'] || ''}
-                            onChange={(e) => handleInputChange('category 1', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">sub category 1</label>
-                          <input
-                            type="text"
-                            value={formData['sub category 1'] || ''}
-                            onChange={(e) => handleInputChange('sub category 1', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          />
-                        </div>
-                      </div>
 
-                      <div className="grid grid-cols-2 gap-4 mt-2">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">category 2</label>
-                          <input
-                            type="text"
-                            value={formData['category 2'] || ''}
-                            onChange={(e) => handleInputChange('category 2', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">sub category 2</label>
-                          <input
-                            type="text"
-                            value={formData['sub category 2'] || ''}
-                            onChange={(e) => handleInputChange('sub category 2', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4 mt-2">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">category 3</label>
-                          <input
-                            type="text"
-                            value={formData['category 3'] || ''}
-                            onChange={(e) => handleInputChange('category 3', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">sub category 3</label>
-                          <input
-                            type="text"
-                            value={formData['sub category 3'] || ''}
-                            onChange={(e) => handleInputChange('sub category 3', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          />
-                        </div>
-                      </div>
-                    </div>
                   </div>
 
                   {/* Photos */}
