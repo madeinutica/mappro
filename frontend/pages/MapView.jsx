@@ -364,7 +364,7 @@ const MapView = ({ user, embedMode = false, embedParams = {}, clientId }) => {
   }
 
   return (
-    <div className={`w-full ${embedMode ? 'h-screen' : 'h-screen relative'} font-inter`}>
+    <div className={`w-full ${embedMode ? 'h-full' : 'h-screen relative'} font-inter`}>
       {!embedMode && loading && (
         <div className="absolute inset-0 flex items-center justify-center bg-neutral-cream z-10 font-lato">
           <div className="text-lg text-primary-700">Loading map...</div>
@@ -375,7 +375,7 @@ const MapView = ({ user, embedMode = false, embedParams = {}, clientId }) => {
           <div className="text-accent-600">Error: {error}</div>
         </div>
       )}
-      <div ref={mapContainer} className="w-full h-screen" style={{ minHeight: '400px' }} />
+      <div ref={mapContainer} className={`w-full ${embedMode ? 'h-full' : 'h-screen'}`} style={{ minHeight: '400px' }} />
 
       {/* Image Modal - only show in non-embed mode */}
       {!embedMode && imageModal.isOpen && (

@@ -7,25 +7,28 @@ import DemoMap from './components/DemoMap';
 import { useAuth } from './contexts/AuthContext';
 
 const App = () => {
-  const [currentView, setCurrentView] = useState('marketing'); // 'marketing', 'demo', 'admin', 'map', 'embed', 'auth'
-  const [mapCustomization, setMapCustomization] = useState({ markerColor: '#2563eb', markerStyle: 'circle' });
-  const { user, client, loading } = useAuth();
-
-  useEffect(() => {
-    // Check URL parameters for embed mode
+  // Initialize embed params from URL
+  const getInitialEmbedParams = () => {
     const urlParams = new URLSearchParams(window.location.search);
     const embed = urlParams.get('embed');
-    const projectId = urlParams.get('project');
-    const filter = urlParams.get('filter');
-    const clientId = urlParams.get('client');
-    const markerColor = urlParams.get('markerColor');
-    const markerStyle = urlParams.get('markerStyle');
-
     if (embed === 'true') {
-      setCurrentView('embed');
-      setEmbedParams({ projectId, filter, clientId, markerColor, markerStyle });
+      const projectId = urlParams.get('project');
+      const filter = urlParams.get('filter');
+      const clientId = urlParams.get('client');
+      const markerColor = urlParams.get('markerColor');
+      const markerStyle = urlParams.get('markerStyle');
+      return { projectId, filter, clientId, markerColor, markerStyle };
     }
-  }, []);
+    return {};
+  };
+
+  const [currentView, setCurrentView] = useState(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get('embed') === 'true' ? 'embed' : 'marketing';
+  });
+  const [mapCustomization, setMapCustomization] = useState({ markerColor: '#2563eb', markerStyle: 'circle' });
+  const [embedParams, setEmbedParams] = useState(getInitialEmbedParams);
+  const { user, client, loading } = useAuth();
 
   useEffect(() => {
     // Auto-redirect to admin if user is authenticated and associated with client
