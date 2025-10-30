@@ -25,10 +25,10 @@ const Embed = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      <div className="min-h-screen flex items-center justify-center bg-neutral-100 font-inter">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading project...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+          <p className="text-neutral-600">Loading project...</p>
         </div>
       </div>
     );
@@ -36,11 +36,11 @@ const Embed = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      <div className="min-h-screen flex items-center justify-center bg-neutral-100 font-inter">
         <div className="text-center">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md">
-            <h2 className="text-red-800 font-semibold mb-2">Error Loading Project</h2>
-            <p className="text-red-600">{error}</p>
+          <div className="bg-accent-50 border border-accent-200 rounded-lg p-6 max-w-md">
+            <h2 className="text-accent-800 font-semibold mb-2">Error Loading Project</h2>
+            <p className="text-accent-600">{error}</p>
           </div>
         </div>
       </div>
@@ -48,7 +48,7 @@ const Embed = () => {
   }
 
   return (
-    <div className="embed-container">
+    <div className="embed-container font-lato">
       <MapView embedMode={true} embedProjectId={projectId} />
     </div>
   );

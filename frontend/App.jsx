@@ -44,6 +44,10 @@ const App = () => {
     }
   };
 
+  const handleSignup = () => {
+    setCurrentView('signup');
+  };
+
   const handleMap = () => {
     setCurrentView('map');
   };
@@ -64,7 +68,9 @@ const App = () => {
   const renderCurrentView = () => {
     switch (currentView) {
       case 'auth':
-        return <Auth onBackToMarketing={handleBackToMarketing} onLoginSuccess={() => setCurrentView('admin')} />;
+        return <Auth onBackToMarketing={handleBackToMarketing} onLoginSuccess={() => setCurrentView('admin')} isLogin={true} />;
+      case 'signup':
+        return <Auth onBackToMarketing={handleBackToMarketing} onLoginSuccess={() => setCurrentView('admin')} isLogin={false} />;
       case 'demo':
         return (
           <div className="min-h-screen bg-gray-100">
@@ -84,7 +90,7 @@ const App = () => {
                 </button>
                 <button
                   onClick={handleLogin}
-                  className="px-4 py-2 bg-primary-600 text-white font-semibold rounded-lg shadow-lg hover:bg-primary-700 transition-colors"
+                  className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-lg hover:bg-blue-700 transition-colors"
                 >
                   {user && client ? 'Admin Panel' : 'Login'}
                 </button>
@@ -139,13 +145,13 @@ const App = () => {
                 </button>
                 <button
                   onClick={handleLogin}
-                  className="px-4 py-2 bg-primary-600 text-white font-semibold rounded-lg shadow-lg hover:bg-primary-700 transition-colors"
+                  className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-lg hover:bg-blue-700 transition-colors"
                 >
                   {user && client ? 'Admin Panel' : 'Login'}
                 </button>
               </div>
             </div>
-            <MapView />
+            <MapView clientId={client?.clients?.id} />
           </div>
         );
       case 'embed':
@@ -155,7 +161,7 @@ const App = () => {
           </div>
         );
       default:
-        return <Marketing onLogin={handleLogin} onDemo={handleDemo} />;
+        return <Marketing onLogin={handleLogin} onDemo={handleDemo} onSignup={handleSignup} />;
     }
   };
 

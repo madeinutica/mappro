@@ -30,7 +30,7 @@ export async function getClientId() {
   }
 }
 
-export async function getProjects(includeUnpublished = false, embedClientId = null, authClientId = null) {
+export async function getProjects(includeUnpublished = false, embedClientId = null, authClientId = null, limit = 5000) {
   let clientId = embedClientId || authClientId;
 
   if (!clientId && !embedClientId) {
@@ -38,12 +38,12 @@ export async function getProjects(includeUnpublished = false, embedClientId = nu
     clientId = await getClientId();
   }
 
-  console.log('getProjects called with:', { includeUnpublished, embedClientId, authClientId, resolvedClientId: clientId });
+  console.log('getProjects called with:', { includeUnpublished, embedClientId, authClientId, resolvedClientId: clientId, limit });
 
   let query = supabase.from('projects').select(`
     *,
     reviews (*)
-  `);
+  `, { count: 'exact' });
 
   if (embedClientId) {
     // For embed mode with specific client, show their projects
@@ -62,9 +62,14 @@ export async function getProjects(includeUnpublished = false, embedClientId = nu
     console.log('No client filter - showing only published projects');
   }
 
-  const { data, error } = await query;
+  // Apply limit to prevent excessive data loading
+  if (limit) {
+    query = query.limit(limit);
+  }
+
+  const { data, error, count } = await query;
   if (error) throw error;
-  console.log('getProjects returning:', data?.length || 0, 'projects');
+  console.log('getProjects returning:', data?.length || 0, 'projects (total available:', count, ')');
   return data;
 }
 

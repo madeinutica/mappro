@@ -21,10 +21,10 @@ const auth = getAuth(app);
 
 async function createDemoUser() {
   try {
-    console.log('Creating demo user...');
+    console.log('Creating demo user eflorez@newyorksash.com...');
     const userCredential = await createUserWithEmailAndPassword(
       auth,
-      'demo@mappro.com',
+      'eflorez@newyorksash.com',
       'password123'
     );
 
@@ -33,14 +33,14 @@ async function createDemoUser() {
     console.log('UID:', userCredential.user.uid);
 
     console.log('\nYou can now test authentication with:');
-    console.log('Email: demo@mappro.com');
+    console.log('Email: eflorez@newyorksash.com');
     console.log('Password: password123');
 
   } catch (error) {
     if (error.code === 'auth/email-already-in-use') {
       console.log('✅ Demo user already exists!');
       console.log('You can test authentication with:');
-      console.log('Email: demo@mappro.com');
+      console.log('Email: eflorez@newyorksash.com');
       console.log('Password: password123');
     } else {
       console.error('❌ Error creating demo user:', error.message);

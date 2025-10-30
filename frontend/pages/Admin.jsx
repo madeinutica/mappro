@@ -225,7 +225,7 @@ const Admin = ({ onMap }) => {
   // Filter and sort projects
   const filteredProjects = projects
     .filter(p => {
-      const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesSearch = !searchTerm || (p.name && p.name.toLowerCase().includes(searchTerm.toLowerCase()));
       const matchesStatus = filterStatus === 'all' || 
         (filterStatus === 'published' && p.is_published) || 
         (filterStatus === 'unpublished' && !p.is_published);
@@ -561,7 +561,7 @@ const Admin = ({ onMap }) => {
               </div>
               <div className="flex justify-end gap-2 mt-4">
                 <button type="button" onClick={() => setShowAddModal(false)} className="px-4 py-2 bg-accent text-neutral-dark rounded-lg hover:bg-primary/10" disabled={adding}>Cancel</button>
-                <button type="submit" disabled={adding || addStatus === 'complete'} className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-secondary disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+                <button type="submit" disabled={adding || addStatus === 'complete'} className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
                   {adding && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>}
                   {adding ? (addStatus || 'Adding...') : addStatus === 'complete' ? 'Added!' : 'Add Project'}
                 </button>

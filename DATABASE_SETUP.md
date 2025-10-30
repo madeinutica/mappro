@@ -31,12 +31,17 @@ The database consists of three main tables:
 2. Copy and paste the contents of `supabase-schema.sql`
 3. Click "Run" to create the tables, indexes, and policies
 
-### 3. Seed the Database (Optional)
+### 3. Apply Development Policies
+
+1. In the SQL Editor, copy and paste the contents of `dev-policies.sql`
+2. Click "Run" to apply development policies for demo clients
+
+### 4. Seed the Database (Optional)
 
 1. In the SQL Editor, copy and paste the contents of `supabase-seed.sql`
 2. Click "Run" to populate the database with sample data
 
-### 4. Verify Setup
+### 5. Verify Setup
 
 1. Go to the Table Editor in Supabase dashboard
 2. Check that the following tables exist:

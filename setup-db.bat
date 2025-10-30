@@ -11,10 +11,13 @@ echo 1. Go to your Supabase dashboard
 echo 2. Navigate to SQL Editor
 echo 3. Copy and paste the contents of supabase-schema.sql
 echo 4. Click 'Run' to create tables
-echo 5. (Optional) Run supabase-seed.sql to add sample data
+echo 5. Copy and paste the contents of dev-policies.sql
+echo 6. Click 'Run' to apply development policies
+echo 7. (Optional) Run supabase-seed.sql to add sample data
 echo.
 echo 📁 Files created:
 echo - supabase-schema.sql: Database schema and policies
+echo - dev-policies.sql: Development policies for demo clients
 echo - supabase-seed.sql: Sample data for testing
 echo - DATABASE_SETUP.md: Detailed setup instructions
 echo.

@@ -3,8 +3,8 @@ import { sendPasswordResetEmail } from 'firebase/auth';
 import { auth } from '../config/firebase.config';
 import { useAuth } from '../contexts/AuthContext';
 
-const Auth = ({ onBackToMarketing, onLoginSuccess }) => {
-  const [isLogin, setIsLogin] = useState(true);
+const Auth = ({ onBackToMarketing, onLoginSuccess, isLogin: initialIsLogin = true }) => {
+  const [isLogin, setIsLogin] = useState(initialIsLogin);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [companyName, setCompanyName] = useState('');
@@ -204,6 +204,16 @@ const Auth = ({ onBackToMarketing, onLoginSuccess }) => {
               className="text-indigo-600 hover:text-indigo-500 text-sm"
             >
               Forgot Password?
+            </button>
+          </div>
+
+          <div className="text-center">
+            <button
+              type="button"
+              onClick={() => setIsLogin(!isLogin)}
+              className="text-indigo-600 hover:text-indigo-500 text-sm"
+            >
+              {isLogin ? "Don't have an account? Create one" : "Already have an account? Sign in"}
             </button>
           </div>
         </form>

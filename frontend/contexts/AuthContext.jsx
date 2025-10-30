@@ -62,6 +62,20 @@ export const AuthProvider = ({ children }) => {
         };
       }
 
+      if (firebaseUid === 'tgXPDqooLxdwYw3zOT8u5KG4ssg2') { // Erick's Lawn Care Firebase UID
+        console.log('AuthContext: Demo user detected, associating with Erick\'s Lawn Care client');
+        return {
+          role: 'admin',
+          clients: {
+            id: 'f2bbc15b-3ded-41bd-b636-84f3ac688a93',
+            name: 'Erick\'s Lawn Care',
+            domain: 'erickslawncare.com',
+            logo_url: null,
+            primary_color: '#10B981'
+          }
+        };
+      }
+
       // No client association found
       console.warn('AuthContext: No client association found for Firebase UID:', firebaseUid);
       return null;

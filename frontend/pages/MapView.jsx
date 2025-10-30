@@ -7,7 +7,7 @@ import { getProjects, getClientInfo } from '../utils/projectApi';
 console.log('MAPBOX_TOKEN:', MAPBOX_TOKEN);
 mapboxgl.accessToken = MAPBOX_TOKEN;
 
-const MapView = ({ user, embedMode = false, embedParams = {} }) => {
+const MapView = ({ user, embedMode = false, embedParams = {}, clientId }) => {
   console.log('MapView component rendering...');
   const mapContainer = useRef(null);
   const map = useRef(null);
@@ -42,7 +42,7 @@ const MapView = ({ user, embedMode = false, embedParams = {} }) => {
     const fetchData = async () => {
       try {
         console.log('Fetching projects...');
-        const projectsData = await getProjects(false, embedParams.clientId);
+        const projectsData = await getProjects(false, embedParams.clientId, clientId);
         console.log('Projects fetched:', projectsData);
         
         // Filter projects based on embed parameters
@@ -80,7 +80,7 @@ const MapView = ({ user, embedMode = false, embedParams = {} }) => {
     };
 
     fetchData();
-  }, [user?.email, JSON.stringify(embedParams)]); // Use stable values
+  }, [user?.email, JSON.stringify(embedParams), clientId]); // Use stable values
 
   // Initialize map only once
   useEffect(() => {
