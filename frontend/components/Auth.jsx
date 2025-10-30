@@ -199,33 +199,11 @@ const Auth = ({ onBackToMarketing, onLoginSuccess }) => {
           <div className="text-center">
             <button
               type="button"
-              onClick={() => setIsLogin(!isLogin)}
+              onClick={handleForgotPassword}
+              disabled={loading}
               className="text-indigo-600 hover:text-indigo-500 text-sm"
             >
-              {isLogin ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
-            </button>
-          </div>
-
-          {isLogin && (
-            <div className="text-center">
-              <button
-                type="button"
-                onClick={handleForgotPassword}
-                disabled={loading}
-                className="text-indigo-600 hover:text-indigo-500 text-sm"
-              >
-                Forgot Password?
-              </button>
-            </div>
-          )}
-
-          <div className="text-center">
-            <button
-              type="button"
-              onClick={() => setIsLogin(false)}
-              className="text-indigo-600 hover:text-indigo-500 text-sm"
-            >
-              Sign Up
+              Forgot Password?
             </button>
           </div>
         </form>

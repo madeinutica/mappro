@@ -26,12 +26,30 @@ export const AuthProvider = ({ children }) => {
   // Fetch user-client association from Supabase
   const fetchUserClient = async (firebaseUid) => {
     try {
-      console.log('Fetching user-client association for Firebase UID:', firebaseUid);
+      console.log('AuthContext: Fetching user-client association for Firebase UID:', firebaseUid);
 
       // For demo purposes, hardcode the association for the demo user
       // In production, this would come from the database
+      console.log('AuthContext: Checking Firebase UID:', firebaseUid);
+
+      // First, try to find client association in database
+      const { data, error } = await supabase
+        .from('clients')
+        .select('id, name, domain, logo_url, primary_color')
+        .eq('firebase_uid', firebaseUid)
+        .single();
+
+      if (data) {
+        console.log('AuthContext: Found client association in database:', data);
+        return {
+          role: 'admin',
+          clients: data
+        };
+      }
+
+      // If no database association, check for demo users
       if (firebaseUid === 'ibEEqGoyOOXeAbBg7QIREWmWa523') { // eflorez@newyorksash.com Firebase UID
-        console.log('Demo user detected, associating with New York Sash client');
+        console.log('AuthContext: Demo user detected, associating with New York Sash client');
         return {
           role: 'admin',
           clients: {
@@ -44,27 +62,8 @@ export const AuthProvider = ({ children }) => {
         };
       }
 
-      // Query clients table directly using firebase_uid
-      const { data, error } = await supabase
-        .from('clients')
-        .select('id, name, domain, logo_url, primary_color')
-        .eq('firebase_uid', firebaseUid)
-        .single();
-
-      if (error && error.code !== 'PGRST116') { // PGRST116 is "not found"
-        console.error('Error fetching user client:', error);
-        return null;
-      }
-
-      if (data) {
-        console.log('User-client association found:', data);
-        return {
-          role: 'admin', // Default role for Firebase users
-          clients: data
-        };
-      }
-
-      console.warn('No client association found for Firebase UID:', firebaseUid);
+      // No client association found
+      console.warn('AuthContext: No client association found for Firebase UID:', firebaseUid);
       return null;
     } catch (error) {
       console.error('Error in fetchUserClient:', error);
@@ -75,66 +74,36 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     // Listen for Firebase auth state changes
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      console.log('Firebase auth state change:', firebaseUser?.email || 'signed out');
+      console.log('AuthContext: Firebase auth state change:', firebaseUser?.email || 'signed out', 'UID:', firebaseUser?.uid);
 
       try {
         if (firebaseUser) {
-          console.log('Firebase user authenticated, setting Supabase session...');
+          console.log('AuthContext: Firebase user authenticated - UID:', firebaseUser.uid, 'Email:', firebaseUser.email);
 
-          // Get Firebase ID token and set it as Supabase session
-          const idToken = await firebaseUser.getIdToken();
+          // Set the user state immediately
+          setUser(firebaseUser);
 
-          // Set the Firebase token as the Supabase auth token
-          const { data: supabaseSession, error: supabaseError } = await supabase.auth.setSession({
-            access_token: idToken,
-            refresh_token: firebaseUser.refreshToken
-          });
-
-          if (supabaseError) {
-            console.warn('Supabase session set failed:', supabaseError);
-            // Continue anyway - some operations might still work
-          } else {
-            console.log('Supabase session set with Firebase token');
-          }
+          // For demo purposes, don't try to set Supabase session with Firebase token
+          // Supabase will use anonymous access for data operations
+          console.log('AuthContext: Using anonymous Supabase access for demo');
 
           // Get client association data from Supabase
           const clientData = await fetchUserClient(firebaseUser.uid);
 
           if (clientData) {
-            // Transform Firebase user to match the expected format
-            const transformedUser = {
-              id: firebaseUser.uid,
-              email: firebaseUser.email,
-              email_confirmed_at: firebaseUser.emailVerified ? new Date().toISOString() : null,
-              created_at: firebaseUser.metadata.creationTime,
-              updated_at: firebaseUser.metadata.lastSignInTime
-            };
-
-            setUser(transformedUser);
+            console.log('AuthContext: Setting client data:', clientData);
             setClient(clientData);
-            console.log('Firebase user and client data loaded successfully');
           } else {
-            console.warn('No client association found for Firebase user - allowing demo access');
-            // For demo purposes, let's still allow login but with limited access
-            const transformedUser = {
-              id: firebaseUser.uid,
-              email: firebaseUser.email,
-              email_confirmed_at: firebaseUser.emailVerified ? new Date().toISOString() : null,
-              created_at: firebaseUser.metadata.creationTime,
-              updated_at: firebaseUser.metadata.lastSignInTime
-            };
-            setUser(transformedUser);
-            setClient(null); // No client association
+            console.log('AuthContext: No client association found');
+            setClient(null);
           }
         } else {
-          console.log('Firebase user signed out');
-          // Sign out from Supabase too
-          await supabase.auth.signOut();
+          console.log('AuthContext: Firebase user signed out');
           setUser(null);
           setClient(null);
         }
       } catch (error) {
-        console.error('Error in Firebase auth state change:', error);
+        console.error('AuthContext: Error in Firebase auth state change:', error);
         setUser(null);
         setClient(null);
       }

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { getProjects, updateProject, deleteProject, uploadPhoto, deletePhoto } from '../utils/projectApi';
+import React, { useState, useEffect, useRef } from 'react';
+import { getProjects, updateProject, deleteProject, uploadPhoto, deletePhoto, addProject } from '../utils/projectApi';
 import { useAuth } from '../contexts/AuthContext';
 
 const Admin = ({ onMap }) => {
@@ -11,17 +11,226 @@ const Admin = ({ onMap }) => {
   const [uploadingBefore, setUploadingBefore] = useState(false);
   const [uploadingAfter, setUploadingAfter] = useState(false);
   const [view, setView] = useState('dashboard'); // 'dashboard' or 'edit' or 'embed'
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [filterStatus, setFilterStatus] = useState('all'); // 'all', 'published', 'unpublished'
   const [currentPage, setCurrentPage] = useState(1);
   const [projectsPerPage] = useState(10);
+  const [addForm, setAddForm] = useState({
+    name: '',
+    description: '',
+    lat: '',
+    lng: '',
+    customer: '',
+    street: '',
+    city: '',
+    state: '',
+    zip: '',
+    'Category 1': '',
+    'Sub Category 1': '',
+    'Category 2': '',
+    'Sub Category 2': '',
+    'Category 3': '',
+    'Sub Category 3': '',
+    'Category 4': '',
+    'Sub Category 4': '',
+    'Category 5': '',
+    'Sub Category 5': '',
+    'Category 6': '',
+    'Sub Category 6': '',
+    'Category 7': '',
+    'Sub Category 7': '',
+    is_published: false
+  });
+  const [beforePhoto, setBeforePhoto] = useState(null);
+  const [afterPhoto, setAfterPhoto] = useState(null);
+  const beforeInputRef = useRef();
+  const afterInputRef = useRef();
+  const [adding, setAdding] = useState(false);
+  const [addStatus, setAddStatus] = useState(''); // 'creating', 'uploading', 'complete', 'error'
+  const [formErrors, setFormErrors] = useState({});
+  const handleAddInputChange = (field, value) => {
+    setAddForm(prev => ({ ...prev, [field]: value }));
+    // Clear error when user starts typing
+    if (formErrors[field]) {
+      setFormErrors(prev => ({ ...prev, [field]: null }));
+    }
+  };
+
+  const handleBeforePhotoChange = (e) => {
+    setBeforePhoto(e.target.files[0] || null);
+  };
+  const handleAfterPhotoChange = (e) => {
+    setAfterPhoto(e.target.files[0] || null);
+  };
+
+  const validateAddForm = () => {
+    const errors = {};
+
+    // Required fields
+    if (!addForm.name?.trim()) {
+      errors.name = 'Customer name is required';
+    }
+
+    // Coordinate validation
+    const lat = parseFloat(addForm.lat);
+    const lng = parseFloat(addForm.lng);
+
+    if (!addForm.lat || isNaN(lat)) {
+      errors.lat = 'Valid latitude is required';
+    } else if (lat < -90 || lat > 90) {
+      errors.lat = 'Latitude must be between -90 and 90';
+    }
+
+    if (!addForm.lng || isNaN(lng)) {
+      errors.lng = 'Valid longitude is required';
+    } else if (lng < -180 || lng > 180) {
+      errors.lng = 'Longitude must be between -180 and 180';
+    }
+
+    // Optional but validated fields
+    if (addForm.street && addForm.street.length > 100) {
+      errors.street = 'Street address must be less than 100 characters';
+    }
+
+    if (addForm.city && addForm.city.length > 50) {
+      errors.city = 'City must be less than 50 characters';
+    }
+
+    if (addForm.state && addForm.state.length > 2) {
+      errors.state = 'State should be 2 characters (e.g., NY)';
+    }
+
+    if (addForm.zip && !/^\d{5}(-\d{4})?$/.test(addForm.zip)) {
+      errors.zip = 'ZIP code should be 5 digits or 5-4 format';
+    }
+
+    return errors;
+  };
+
+  const handleAddProject = async (e) => {
+    e.preventDefault();
+    
+    // Validate form
+    const errors = validateAddForm();
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      // Scroll to first error
+      const firstErrorField = Object.keys(errors)[0];
+      const errorElement = document.querySelector(`[name="${firstErrorField}"]`);
+      if (errorElement) {
+        errorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        errorElement.focus();
+      }
+      return;
+    }
+
+    setAdding(true);
+    setFormErrors({});
+    setAddStatus('creating');
+    
+    try {
+      // Add project first (without before/after photo fields)
+      const { before_photo, after_photo, ...projectData } = addForm;
+      console.log('Adding project with clientId:', clientId, 'projectData:', projectData);
+      
+      setAddStatus('Creating project...');
+      const newProjectArr = await addProject(projectData, clientId);
+      const newProject = Array.isArray(newProjectArr) ? newProjectArr[0] : newProjectArr;
+      console.log('New project created:', newProject);
+      
+      // Upload before/after photos if present
+      if (newProject?.id) {
+        let beforeUrl = '';
+        let afterUrl = '';
+        
+        if (beforePhoto) {
+          setAddStatus('Uploading before photo...');
+          beforeUrl = await uploadPhoto(newProject.id, beforePhoto, 'before');
+        }
+        
+        if (afterPhoto) {
+          setAddStatus('Uploading after photo...');
+          afterUrl = await uploadPhoto(newProject.id, afterPhoto, 'after');
+        }
+        
+        // Update project with photo URLs if needed
+        if (beforeUrl || afterUrl) {
+          setAddStatus('Finalizing project...');
+          await updateProject(newProject.id, {
+            before_photo: beforeUrl,
+            after_photo: afterUrl
+          });
+        }
+      }
+      
+      setAddStatus('complete');
+      
+      // Refresh projects list immediately
+      const updatedProjects = await getProjects(false, null, clientId);
+      console.log('After adding project, refreshed projects:', updatedProjects?.length || 0, 'projects');
+      setProjects(updatedProjects);
+      
+      // Small delay to show completion message
+      setTimeout(() => {
+        setShowAddModal(false);
+        setAddStatus('');
+        setAddForm({ name: '', description: '', lat: '', lng: '', customer: '', street: '', city: '', state: '', zip: '', 'Category 1': '', 'Sub Category 1': '', 'Category 2': '', 'Sub Category 2': '', 'Category 3': '', 'Sub Category 3': '', 'Category 4': '', 'Sub Category 4': '', 'Category 5': '', 'Sub Category 5': '', 'Category 6': '', 'Sub Category 6': '', 'Category 7': '', 'Sub Category 7': '', is_published: false });
+        setBeforePhoto(null);
+        setAfterPhoto(null);
+        if (beforeInputRef.current) beforeInputRef.current.value = '';
+        if (afterInputRef.current) afterInputRef.current.value = '';
+        
+        alert('Project added successfully!');
+      }, 500);
+      
+    } catch (error) {
+      console.error('Error adding project:', error);
+      setAddStatus('error');
+      alert('Error adding project: ' + error.message);
+      
+      // Reset status after showing error
+      setTimeout(() => setAddStatus(''), 2000);
+    } finally {
+      setAdding(false);
+    }
+  };
   const { signOut, client } = useAuth();
+  const clientId = client?.clients?.id || client?.id;
+
+  console.log('Admin component render - client:', client, 'clientId:', clientId);
 
   useEffect(() => {
-    getProjects().then(setProjects);
-  }, []);
+    console.log('useEffect triggered with clientId:', clientId);
+    const loadProjects = async () => {
+      try {
+        console.log('Loading projects for clientId:', clientId);
+        const projects = await getProjects(false, null, clientId);
+        console.log('Loaded projects:', projects?.length || 0, 'projects');
+        if (projects && projects.length > 0) {
+          console.log('First project sample:', projects[0]);
+        }
+        setProjects(projects);
+      } catch (error) {
+        console.error('Error loading projects:', error);
+      }
+    };
+    if (clientId) {
+      console.log('clientId is defined, calling loadProjects');
+      loadProjects();
+    } else {
+      console.log('clientId is undefined, skipping project load');
+    }
+  }, [clientId]);
 
   // Filter and sort projects
   const filteredProjects = projects
-    .filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()))
+    .filter(p => {
+      const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = filterStatus === 'all' || 
+        (filterStatus === 'published' && p.is_published) || 
+        (filterStatus === 'unpublished' && !p.is_published);
+      return matchesSearch && matchesStatus;
+    })
     .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
 
   // Pagination logic
@@ -35,8 +244,16 @@ const Admin = ({ onMap }) => {
     setCurrentPage(1);
   }, [searchTerm]);
 
-  const handlePageChange = (pageNumber) => {
-    setCurrentPage(pageNumber);
+  const handleFilterToggle = (status) => {
+    if (filterStatus === status) {
+      setFilterStatus('all');
+    } else {
+      setFilterStatus(status);
+    }
+  };
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
   };
 
   const handleSelectProject = (projectId) => {
@@ -72,10 +289,10 @@ const Admin = ({ onMap }) => {
     setSaving(true);
     try {
       // Ensure client_id is always included
-      const updatedFormData = { ...formData, client_id: client?.id };
+      const updatedFormData = { ...formData, client_id: clientId };
       await updateProject(selected, updatedFormData);
       // Refresh projects list
-      const updatedProjects = await getProjects();
+      const updatedProjects = await getProjects(false, null, clientId);
       setProjects(updatedProjects);
       alert('Project updated successfully!');
     } catch (error) {
@@ -99,7 +316,7 @@ const Admin = ({ onMap }) => {
     try {
       await deleteProject(selected);
       // Refresh projects list
-      const updatedProjects = await getProjects();
+      const updatedProjects = await getProjects(false, null, clientId);
       setProjects(updatedProjects);
       // Go back to dashboard
       handleBackToDashboard();
@@ -156,52 +373,255 @@ const Admin = ({ onMap }) => {
 
   const renderDashboard = () => (
     <div className="space-y-8">
+      {/* Add Project Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          <div className="bg-neutral-light rounded-xl shadow-lg p-8 w-full max-w-lg relative max-h-[90vh] overflow-y-auto">
+            <button className="absolute top-2 right-2 text-neutral-dark hover:text-primary text-2xl" onClick={() => setShowAddModal(false)}>&times;</button>
+            <h2 className="text-2xl font-bold mb-4 text-primary">Add New Project</h2>
+            
+            {/* Status Indicator */}
+            {addStatus && (
+              <div className={`mb-4 p-3 rounded-lg flex items-center gap-3 ${
+                addStatus === 'error' 
+                  ? 'bg-red-50 border border-red-200' 
+                  : addStatus === 'complete'
+                  ? 'bg-green-50 border border-green-200'
+                  : 'bg-blue-50 border border-blue-200'
+              }`}>
+                {addStatus === 'error' ? (
+                  <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                ) : addStatus === 'complete' ? (
+                  <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                ) : (
+                  <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                )}
+                <span className={`text-sm font-medium ${
+                  addStatus === 'error' ? 'text-red-700' : 
+                  addStatus === 'complete' ? 'text-green-700' : 'text-blue-700'
+                }`}>
+                  {addStatus === 'creating' ? 'Creating project...' :
+                   addStatus === 'complete' ? 'Project created successfully!' :
+                   addStatus === 'error' ? 'Failed to create project' :
+                   addStatus}
+                </span>
+              </div>
+            )}
+            
+            <form onSubmit={handleAddProject} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-neutral-dark mb-1">Customer Name</label>
+                <input type="text" value={addForm.name} onChange={e => handleAddInputChange('name', e.target.value)} required className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${formErrors.name ? 'border-red-500 focus:ring-red-500' : 'border-accent focus:ring-primary'}`} />
+                {formErrors.name && <p className="text-red-500 text-xs mt-1">{formErrors.name}</p>}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-neutral-dark mb-1">Description</label>
+                <textarea value={addForm.description} onChange={e => handleAddInputChange('description', e.target.value)} rows={2} className="w-full px-3 py-2 border border-accent rounded-md focus:outline-none focus:ring-2 focus:ring-primary" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-neutral-dark mb-1">Latitude</label>
+                  <input type="number" step="any" value={addForm.lat} onChange={e => handleAddInputChange('lat', e.target.value)} required className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${formErrors.lat ? 'border-red-500 focus:ring-red-500' : 'border-accent focus:ring-primary'}`} />
+                  {formErrors.lat && <p className="text-red-500 text-xs mt-1">{formErrors.lat}</p>}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-neutral-dark mb-1">Longitude</label>
+                  <input type="number" step="any" value={addForm.lng} onChange={e => handleAddInputChange('lng', e.target.value)} required className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${formErrors.lng ? 'border-red-500 focus:ring-red-500' : 'border-accent focus:ring-primary'}`} />
+                  {formErrors.lng && <p className="text-red-500 text-xs mt-1">{formErrors.lng}</p>}
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-neutral-dark mb-1">Street</label>
+                <input type="text" value={addForm.street} onChange={e => handleAddInputChange('street', e.target.value)} className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${formErrors.street ? 'border-red-500 focus:ring-red-500' : 'border-accent focus:ring-primary'}`} placeholder="40 Old Boorne Drive" />
+                {formErrors.street && <p className="text-red-500 text-xs mt-1">{formErrors.street}</p>}
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-neutral-dark mb-1">City</label>
+                  <input type="text" value={addForm.city} onChange={e => handleAddInputChange('city', e.target.value)} className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${formErrors.city ? 'border-red-500 focus:ring-red-500' : 'border-accent focus:ring-primary'}`} placeholder="Clinton" />
+                  {formErrors.city && <p className="text-red-500 text-xs mt-1">{formErrors.city}</p>}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-neutral-dark mb-1">State</label>
+                  <input type="text" value={addForm.state} onChange={e => handleAddInputChange('state', e.target.value)} className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${formErrors.state ? 'border-red-500 focus:ring-red-500' : 'border-accent focus:ring-primary'}`} placeholder="NY" />
+                  {formErrors.state && <p className="text-red-500 text-xs mt-1">{formErrors.state}</p>}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-neutral-dark mb-1">ZIP</label>
+                  <input type="text" value={addForm.zip} onChange={e => handleAddInputChange('zip', e.target.value)} className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${formErrors.zip ? 'border-red-500 focus:ring-red-500' : 'border-accent focus:ring-primary'}`} placeholder="13323" />
+                  {formErrors.zip && <p className="text-red-500 text-xs mt-1">{formErrors.zip}</p>}
+                </div>
+              </div>
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-neutral-dark">Categories</h3>
+                
+                {/* Category Set 1 */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-dark mb-1">Category 1</label>
+                    <input type="text" value={addForm['Category 1']} onChange={e => handleAddInputChange('Category 1', e.target.value)} className="w-full px-3 py-2 border border-accent rounded-md focus:outline-none focus:ring-2 focus:ring-primary" placeholder="Doors & Windows" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-dark mb-1">Sub Category 1</label>
+                    <input type="text" value={addForm['Sub Category 1']} onChange={e => handleAddInputChange('Sub Category 1', e.target.value)} className="w-full px-3 py-2 border border-accent rounded-md focus:outline-none focus:ring-2 focus:ring-primary" placeholder="Windows" />
+                  </div>
+                </div>
+
+                {/* Category Set 2 */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-dark mb-1">Category 2</label>
+                    <input type="text" value={addForm['Category 2']} onChange={e => handleAddInputChange('Category 2', e.target.value)} className="w-full px-3 py-2 border border-accent rounded-md focus:outline-none focus:ring-2 focus:ring-primary" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-dark mb-1">Sub Category 2</label>
+                    <input type="text" value={addForm['Sub Category 2']} onChange={e => handleAddInputChange('Sub Category 2', e.target.value)} className="w-full px-3 py-2 border border-accent rounded-md focus:outline-none focus:ring-2 focus:ring-primary" />
+                  </div>
+                </div>
+
+                {/* Category Set 3 */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-dark mb-1">Category 3</label>
+                    <input type="text" value={addForm['Category 3']} onChange={e => handleAddInputChange('Category 3', e.target.value)} className="w-full px-3 py-2 border border-accent rounded-md focus:outline-none focus:ring-2 focus:ring-primary" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-dark mb-1">Sub Category 3</label>
+                    <input type="text" value={addForm['Sub Category 3']} onChange={e => handleAddInputChange('Sub Category 3', e.target.value)} className="w-full px-3 py-2 border border-accent rounded-md focus:outline-none focus:ring-2 focus:ring-primary" />
+                  </div>
+                </div>
+
+                {/* Category Set 4 */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-dark mb-1">Category 4</label>
+                    <input type="text" value={addForm['Category 4']} onChange={e => handleAddInputChange('Category 4', e.target.value)} className="w-full px-3 py-2 border border-accent rounded-md focus:outline-none focus:ring-2 focus:ring-primary" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-dark mb-1">Sub Category 4</label>
+                    <input type="text" value={addForm['Sub Category 4']} onChange={e => handleAddInputChange('Sub Category 4', e.target.value)} className="w-full px-3 py-2 border border-accent rounded-md focus:outline-none focus:ring-2 focus:ring-primary" />
+                  </div>
+                </div>
+
+                {/* Category Set 5 */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-dark mb-1">Category 5</label>
+                    <input type="text" value={addForm['Category 5']} onChange={e => handleAddInputChange('Category 5', e.target.value)} className="w-full px-3 py-2 border border-accent rounded-md focus:outline-none focus:ring-2 focus:ring-primary" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-dark mb-1">Sub Category 5</label>
+                    <input type="text" value={addForm['Sub Category 5']} onChange={e => handleAddInputChange('Sub Category 5', e.target.value)} className="w-full px-3 py-2 border border-accent rounded-md focus:outline-none focus:ring-2 focus:ring-primary" />
+                  </div>
+                </div>
+
+                {/* Category Set 6 */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-dark mb-1">Category 6</label>
+                    <input type="text" value={addForm['Category 6']} onChange={e => handleAddInputChange('Category 6', e.target.value)} className="w-full px-3 py-2 border border-accent rounded-md focus:outline-none focus:ring-2 focus:ring-primary" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-dark mb-1">Sub Category 6</label>
+                    <input type="text" value={addForm['Sub Category 6']} onChange={e => handleAddInputChange('Sub Category 6', e.target.value)} className="w-full px-3 py-2 border border-accent rounded-md focus:outline-none focus:ring-2 focus:ring-primary" />
+                  </div>
+                </div>
+
+                {/* Category Set 7 */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-dark mb-1">Category 7</label>
+                    <input type="text" value={addForm['Category 7']} onChange={e => handleAddInputChange('Category 7', e.target.value)} className="w-full px-3 py-2 border border-accent rounded-md focus:outline-none focus:ring-2 focus:ring-primary" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-dark mb-1">Sub Category 7</label>
+                    <input type="text" value={addForm['Sub Category 7']} onChange={e => handleAddInputChange('Sub Category 7', e.target.value)} className="w-full px-3 py-2 border border-accent rounded-md focus:outline-none focus:ring-2 focus:ring-primary" />
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-neutral-dark mb-1">Before Photo</label>
+                  <input type="file" accept="image/*" onChange={handleBeforePhotoChange} ref={beforeInputRef} className="block w-full text-sm text-neutral-dark file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-accent file:text-primary hover:file:bg-primary/10" />
+                  {beforePhoto && <div className="mt-1 text-xs text-gray-500">{beforePhoto.name}</div>}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-neutral-dark mb-1">After Photo</label>
+                  <input type="file" accept="image/*" onChange={handleAfterPhotoChange} ref={afterInputRef} className="block w-full text-sm text-neutral-dark file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-accent file:text-primary hover:file:bg-primary/10" />
+                  {afterPhoto && <div className="mt-1 text-xs text-gray-500">{afterPhoto.name}</div>}
+                </div>
+              </div>
+              <div className="flex items-center">
+                <input type="checkbox" id="is_published" checked={addForm.is_published} onChange={e => handleAddInputChange('is_published', e.target.checked)} className="mr-2 accent-primary" />
+                <label htmlFor="is_published" className="text-sm text-neutral-dark">Published</label>
+              </div>
+              <div className="flex justify-end gap-2 mt-4">
+                <button type="button" onClick={() => setShowAddModal(false)} className="px-4 py-2 bg-accent text-neutral-dark rounded-lg hover:bg-primary/10" disabled={adding}>Cancel</button>
+                <button type="submit" disabled={adding || addStatus === 'complete'} className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-secondary disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+                  {adding && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>}
+                  {adding ? (addStatus || 'Adding...') : addStatus === 'complete' ? 'Added!' : 'Add Project'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
       {/* Welcome Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl p-8">
+      <div className="bg-gradient-to-r from-primary to-secondary text-white rounded-xl p-8">
         <h1 className="text-3xl font-bold mb-2">Welcome to Mapro Admin</h1>
-        <p className="text-blue-100">Manage your interactive map projects and embed codes</p>
+        <p className="text-accent">Manage your interactive map projects and embed codes</p>
       </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white rounded-xl shadow p-6">
+        <div className="bg-neutral-light rounded-xl shadow p-6">
           <div className="flex items-center">
-            <div className="p-3 bg-blue-100 rounded-lg">
-              <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="p-3 bg-accent rounded-lg">
+              <svg className="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
               </svg>
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Total Projects</p>
-              <p className="text-2xl font-bold text-gray-900">{totalProjects}</p>
+              <p className="text-sm font-medium text-neutral-dark/80">Total Projects</p>
+              <p className="text-2xl font-bold text-neutral-dark">{totalProjects}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow p-6">
+        <div className="bg-neutral-light rounded-xl shadow p-6 cursor-pointer hover:bg-neutral-light/80 transition-colors" onClick={() => handleFilterToggle('published')}>
           <div className="flex items-center">
-            <div className="p-3 bg-green-100 rounded-lg">
-              <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="p-3 bg-secondary/20 rounded-lg">
+              <svg className="w-8 h-8 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Published</p>
-              <p className="text-2xl font-bold text-gray-900">{publishedProjects}</p>
+              <p className="text-sm font-medium text-neutral-dark/80">Published</p>
+              <p className="text-2xl font-bold text-neutral-dark">{publishedProjects}</p>
+              {filterStatus === 'published' && (
+                <p className="text-xs text-secondary font-medium mt-1">Filtered</p>
+              )}
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow p-6">
+        <div className="bg-neutral-light rounded-xl shadow p-6 cursor-pointer hover:bg-neutral-light/80 transition-colors" onClick={() => handleFilterToggle('unpublished')}>
           <div className="flex items-center">
-            <div className="p-3 bg-yellow-100 rounded-lg">
-              <svg className="w-8 h-8 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="p-3 bg-accent/60 rounded-lg">
+              <svg className="w-8 h-8 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
               </svg>
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Draft</p>
-              <p className="text-2xl font-bold text-gray-900">{unpublishedProjects}</p>
+              <p className="text-sm font-medium text-neutral-dark/80">Draft</p>
+              <p className="text-2xl font-bold text-neutral-dark">{unpublishedProjects}</p>
+              {filterStatus === 'unpublished' && (
+                <p className="text-xs text-accent font-medium mt-1">Filtered</p>
+              )}
             </div>
           </div>
         </div>
@@ -210,7 +630,7 @@ const Admin = ({ onMap }) => {
       {/* Recent Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Newest Project */}
-        <div className="bg-white rounded-xl shadow p-6">
+        <div className="bg-neutral-cream rounded-xl shadow p-6">
           <h2 className="text-xl font-bold text-gray-900 mb-4">Latest Project</h2>
           {newestProject ? (
             <div className="space-y-3">
@@ -240,7 +660,7 @@ const Admin = ({ onMap }) => {
         </div>
 
         {/* Embed Code */}
-        <div className="bg-white rounded-xl shadow p-6">
+        <div className="bg-neutral-cream rounded-xl shadow p-6">
           <h2 className="text-xl font-bold text-gray-900 mb-4">Embed Code</h2>
           <p className="text-sm text-gray-600 mb-4">Use this code to embed your published projects map on any website:</p>
           <div className="bg-gray-50 rounded-lg p-4 mb-4">
@@ -264,19 +684,18 @@ const Admin = ({ onMap }) => {
       </div>
 
       {/* Quick Actions */}
-      <div className="bg-white rounded-xl shadow p-6">
+      <div className="bg-neutral-cream rounded-xl shadow p-6">
         <h2 className="text-xl font-bold text-gray-900 mb-4">Quick Actions</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <button className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors">
-            <div className="text-center">
-              <svg className="w-8 h-8 text-gray-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-              </svg>
-              <p className="text-sm font-medium text-gray-900">Add New Project</p>
-              <p className="text-xs text-gray-500">Coming soon</p>
-            </div>
+          <button
+            className="p-4 border-2 border-dashed border-blue-500 rounded-lg hover:bg-blue-50 transition-colors text-blue-700 font-semibold flex flex-col items-center justify-center"
+            onClick={() => setShowAddModal(true)}
+          >
+            <svg className="w-8 h-8 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            Add New Project
           </button>
-          
           <button className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-green-500 hover:bg-green-50 transition-colors">
             <div className="text-center">
               <svg className="w-8 h-8 text-gray-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -286,7 +705,6 @@ const Admin = ({ onMap }) => {
               <p className="text-xs text-gray-500">Coming soon</p>
             </div>
           </button>
-          
           <button className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-colors">
             <div className="text-center">
               <svg className="w-8 h-8 text-gray-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -305,7 +723,7 @@ const Admin = ({ onMap }) => {
     <div className="admin-page bg-gray-100 min-h-screen">
       <div className="container mx-auto py-8">
         <div className="flex gap-8">
-          <aside className="w-64 bg-white rounded-xl shadow p-6 sticky top-8 h-fit self-start">
+          <aside className="w-64 bg-neutral-cream rounded-xl shadow p-6 sticky top-8 h-fit self-start">
             <h1 className="text-3xl font-bold text-blue-700 mb-6">Admin Panel</h1>
             
             {/* Navigation */}
@@ -351,6 +769,23 @@ const Admin = ({ onMap }) => {
               onChange={e => setSearchTerm(e.target.value)}
               className="w-full px-3 py-2 mb-4 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
+            
+            {/* Filter Status Indicator */}
+            {filterStatus !== 'all' && (
+              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-blue-700 font-medium">
+                    Showing {filterStatus === 'published' ? 'Published' : 'Draft'} projects only
+                  </span>
+                  <button
+                    onClick={() => setFilterStatus('all')}
+                    className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                  >
+                    Show All
+                  </button>
+                </div>
+              </div>
+            )}
             <ul className="space-y-2">
               {currentProjects.map(project => (
                 <li key={project.id}>
@@ -396,7 +831,7 @@ const Admin = ({ onMap }) => {
           </aside>
           <main className="flex-1">
             {view === 'dashboard' && !selected ? renderDashboard() : view === 'embed' ? (
-              <div className="bg-white rounded-xl shadow p-8">
+              <div className="bg-neutral-cream rounded-xl shadow p-8">
                 <div className="flex justify-between items-center mb-6">
                   <div className="flex items-center space-x-4">
                     <button
@@ -431,14 +866,14 @@ const Admin = ({ onMap }) => {
                     
                     <div className="bg-gray-50 p-4 rounded-lg">
                       <label className="block text-sm font-medium text-gray-700 mb-2">Embed URL:</label>
-                      <code className="block bg-white p-3 rounded border text-sm break-all">
+                      <code className="block bg-neutral-cream p-3 rounded border text-sm break-all">
                         {`${window.location.origin}?embed=true&client=${client?.id || 'YOUR_CLIENT_ID'}`}
                       </code>
                     </div>
 
                     <div className="bg-gray-50 p-4 rounded-lg mt-4">
                       <label className="block text-sm font-medium text-gray-700 mb-2">HTML Embed Code:</label>
-                      <code className="block bg-white p-3 rounded border text-sm break-all">
+                      <code className="block bg-neutral-cream p-3 rounded border text-sm break-all">
                         {`<iframe src="${window.location.origin}?embed=true&client=${client?.id || 'YOUR_CLIENT_ID'}" width="100%" height="600" frameborder="0"></iframe>`}
                       </code>
                     </div>
@@ -455,7 +890,7 @@ const Admin = ({ onMap }) => {
                 </div>
               </div>
             ) : (
-              <div className="bg-white rounded-xl shadow p-8">
+              <div className="bg-neutral-cream rounded-xl shadow p-8">
                 <div className="flex justify-between items-center mb-6">
                   <div className="flex items-center space-x-4">
                     <button
