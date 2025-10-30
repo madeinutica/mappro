@@ -2,10 +2,7 @@ import React from 'react';
 
 const ProjectPopup = ({ project }) => (
   <div className="max-w-xs bg-neutral-cream p-2">
-    <h3 className="font-semibold text-xl text-gray-900 mb-1">{project.name || 'Unnamed Project'}</h3>
-    {project.description && (
-      <p className="mb-2 text-gray-700 text-sm">{project.description}</p>
-    )}
+    <h3 className="font-semibold text-lg text-gray-900 mb-1 leading-tight">{project.name || 'Unnamed Project'}</h3>
     
     {/* Reviews */}
     {project.reviews && project.reviews.length > 0 && (

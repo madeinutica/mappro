@@ -52,6 +52,7 @@ const Admin = ({ onMap }) => {
   const [editingReview, setEditingReview] = useState(null);
   const [newReview, setNewReview] = useState({ author: '', rating: 5, text: '' });
   const [savingReview, setSavingReview] = useState(false);
+  const [visibleCategories, setVisibleCategories] = useState(1);
   const handleAddInputChange = (field, value) => {
     setAddForm(prev => ({ ...prev, [field]: value }));
     // Clear error when user starts typing
@@ -290,12 +291,22 @@ const Admin = ({ onMap }) => {
       }
     });
     setFormData(cleanedProject || {});
+    
+    // Determine how many category fields should be visible based on existing data
+    let maxVisible = 1;
+    for (let i = 1; i <= 7; i++) {
+      if (cleanedProject[`Category ${i}`] || cleanedProject[`Sub Category ${i}`]) {
+        maxVisible = i;
+      }
+    }
+    setVisibleCategories(maxVisible);
   };
 
   const handleBackToDashboard = () => {
     setSelected(null);
     setView('dashboard');
     setFormData({});
+    setVisibleCategories(1);
   };
 
   const handleInputChange = (field, value) => {
@@ -479,9 +490,6 @@ const Admin = ({ onMap }) => {
   const newestProject = projects.length > 0 ? projects.reduce((newest, project) => 
     !newest || new Date(project.created_at || 0) > new Date(newest.created_at || 0) ? project : newest
   ) : null;
-
-  // Generate embed code
-  const embedCode = `<iframe src="${window.location.origin}?embed=true&filter=published" width="100%" height="600" frameborder="0"></iframe>`;
 
   const renderDashboard = () => (
     <div className="space-y-8">
@@ -771,28 +779,6 @@ const Admin = ({ onMap }) => {
           )}
         </div>
 
-        {/* Embed Code */}
-        <div className="bg-neutral-cream rounded-xl shadow p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Embed Code</h2>
-          <p className="text-sm text-gray-600 mb-4">Use this code to embed your published projects map on any website:</p>
-          <div className="bg-gray-50 rounded-lg p-4 mb-4">
-            <code className="text-sm text-gray-800 break-all">{embedCode}</code>
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={() => navigator.clipboard.writeText(embedCode)}
-              className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-            >
-              Copy Embed Code
-            </button>
-            <button
-              onClick={() => window.open(`${window.location.origin}?embed=true&filter=published`, '_blank')}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Preview
-            </button>
-          </div>
-        </div>
       </div>
 
       {/* Quick Actions */}
@@ -963,30 +949,32 @@ const Admin = ({ onMap }) => {
                       Use the code below to embed your map on external websites. Only published projects will be shown.
                     </p>
                     {/* Client ID Display in Embed Tab */}
-                    {client?.id && (
+                    {clientId && (
                       <div className="mb-4 bg-yellow-50 border-l-4 border-yellow-400 p-3 rounded flex items-center gap-4">
                         <span className="font-semibold text-yellow-700">Client ID:</span>
-                        <span className="font-mono text-yellow-900 select-all">{client.id}</span>
-                        <button
-                          className="ml-2 px-2 py-1 text-xs bg-yellow-200 rounded hover:bg-yellow-300 text-yellow-900"
-                          onClick={() => navigator.clipboard.writeText(client.id)}
-                        >
-                          Copy
-                        </button>
+                        <span className="font-mono text-yellow-900 select-all">{clientId}</span>
                       </div>
                     )}
                     
                     <div className="bg-gray-50 p-4 rounded-lg">
                       <label className="block text-sm font-medium text-gray-700 mb-2">Embed URL:</label>
                       <code className="block bg-neutral-cream p-3 rounded border text-sm break-all">
-                        {`${window.location.origin}?embed=true&client=${client?.id || 'YOUR_CLIENT_ID'}`}
+                        {`${window.location.origin}?embed=true&client=${clientId || 'YOUR_CLIENT_ID'}`}
                       </code>
                     </div>
 
                     <div className="bg-gray-50 p-4 rounded-lg mt-4">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">HTML Embed Code:</label>
+                      <div className="flex justify-between items-center mb-2">
+                        <label className="block text-sm font-medium text-gray-700">HTML Embed Code:</label>
+                        <button
+                          className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+                          onClick={() => navigator.clipboard.writeText(`<iframe src="${window.location.origin}?embed=true&client=${clientId || 'YOUR_CLIENT_ID'}" width="100%" height="600" frameborder="0"></iframe>`)}
+                        >
+                          Copy Code
+                        </button>
+                      </div>
                       <code className="block bg-neutral-cream p-3 rounded border text-sm break-all">
-                        {`<iframe src="${window.location.origin}?embed=true&client=${client?.id || 'YOUR_CLIENT_ID'}" width="100%" height="600" frameborder="0"></iframe>`}
+                        {`<iframe src="${window.location.origin}?embed=true&client=${clientId || 'YOUR_CLIENT_ID'}" width="100%" height="600" frameborder="0"></iframe>`}
                       </code>
                     </div>
 
@@ -1139,163 +1127,47 @@ const Admin = ({ onMap }) => {
 
                   {/* Categories */}
                   <div className="space-y-4">
-                    <h3 className="text-lg font-semibold text-gray-800">Categories</h3>
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-semibold text-gray-800">Categories</h3>
+                      {visibleCategories < 7 && (
+                        <button
+                          onClick={() => setVisibleCategories(prev => Math.min(prev + 1, 7))}
+                          className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200 flex items-center gap-1"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                          </svg>
+                          Add Category
+                        </button>
+                      )}
+                    </div>
                     
-                    {/* Category Set 1 */}
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Category 1</label>
-                        <input
-                          type="text"
-                          value={formData['Category 1'] || ''}
-                          onChange={(e) => handleInputChange('Category 1', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Sub Category 1</label>
-                        <input
-                          type="text"
-                          value={formData['Sub Category 1'] || ''}
-                          onChange={(e) => handleInputChange('Sub Category 1', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Category Set 2 */}
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Category 2</label>
-                        <input
-                          type="text"
-                          value={formData['Category 2'] || ''}
-                          onChange={(e) => handleInputChange('Category 2', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Sub Category 2</label>
-                        <input
-                          type="text"
-                          value={formData['Sub Category 2'] || ''}
-                          onChange={(e) => handleInputChange('Sub Category 2', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Category Set 3 */}
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Category 3</label>
-                        <input
-                          type="text"
-                          value={formData['Category 3'] || ''}
-                          onChange={(e) => handleInputChange('Category 3', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Sub Category 3</label>
-                        <input
-                          type="text"
-                          value={formData['Sub Category 3'] || ''}
-                          onChange={(e) => handleInputChange('Sub Category 3', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Category Set 4 */}
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Category 4</label>
-                        <input
-                          type="text"
-                          value={formData['Category 4'] || ''}
-                          onChange={(e) => handleInputChange('Category 4', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Sub Category 4</label>
-                        <input
-                          type="text"
-                          value={formData['Sub Category 4'] || ''}
-                          onChange={(e) => handleInputChange('Sub Category 4', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Category Set 5 */}
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Category 5</label>
-                        <input
-                          type="text"
-                          value={formData['Category 5'] || ''}
-                          onChange={(e) => handleInputChange('Category 5', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Sub Category 5</label>
-                        <input
-                          type="text"
-                          value={formData['Sub Category 5'] || ''}
-                          onChange={(e) => handleInputChange('Sub Category 5', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Category Set 6 */}
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Category 6</label>
-                        <input
-                          type="text"
-                          value={formData['Category 6'] || ''}
-                          onChange={(e) => handleInputChange('Category 6', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Sub Category 6</label>
-                        <input
-                          type="text"
-                          value={formData['Sub Category 6'] || ''}
-                          onChange={(e) => handleInputChange('Sub Category 6', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Category Set 7 */}
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Category 7</label>
-                        <input
-                          type="text"
-                          value={formData['Category 7'] || ''}
-                          onChange={(e) => handleInputChange('Category 7', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Sub Category 7</label>
-                        <input
-                          type="text"
-                          value={formData['Sub Category 7'] || ''}
-                          onChange={(e) => handleInputChange('Sub Category 7', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                      </div>
-                    </div>
-
-
+                    {/* Render visible category sets */}
+                    {Array.from({ length: visibleCategories }, (_, index) => {
+                      const categoryNum = index + 1;
+                      return (
+                        <div key={categoryNum} className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Category {categoryNum}</label>
+                            <input
+                              type="text"
+                              value={formData[`Category ${categoryNum}`] || ''}
+                              onChange={(e) => handleInputChange(`Category ${categoryNum}`, e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Sub Category {categoryNum}</label>
+                            <input
+                              type="text"
+                              value={formData[`Sub Category ${categoryNum}`] || ''}
+                              onChange={(e) => handleInputChange(`Sub Category ${categoryNum}`, e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
 
                   {/* Photos */}
