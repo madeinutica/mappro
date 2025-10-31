@@ -11,7 +11,7 @@ const Admin = ({ onMap }) => {
   const [saving, setSaving] = useState(false);
   const [uploadingBefore, setUploadingBefore] = useState(false);
   const [uploadingAfter, setUploadingAfter] = useState(false);
-  const [view, setView] = useState('dashboard'); // 'dashboard' or 'edit' or 'embed' or 'modal-builder'
+  const [view, setView] = useState('dashboard'); // 'dashboard' or 'edit' or 'embed' or 'modal-builder' or 'map-builder'
   const [showAddModal, setShowAddModal] = useState(false);
   const [filterStatus, setFilterStatus] = useState('all'); // 'all', 'published', 'unpublished'
   const [currentPage, setCurrentPage] = useState(1);
@@ -54,8 +54,6 @@ const Admin = ({ onMap }) => {
   const [newReview, setNewReview] = useState({ author: '', rating: 5, text: '' });
   const [savingReview, setSavingReview] = useState(false);
   const [visibleCategories, setVisibleCategories] = useState(1);
-  const [embedMarkerColor, setEmbedMarkerColor] = useState('#2563eb');
-  const [embedMarkerStyle, setEmbedMarkerStyle] = useState('circle');
   const [modalConfig, setModalConfig] = useState({
     cta: {
       message: 'Thinking about a similar project?',
@@ -73,6 +71,23 @@ const Admin = ({ onMap }) => {
     customFields: []
   });
   const [savingModalConfig, setSavingModalConfig] = useState(false);
+  const [mapConfig, setMapConfig] = useState({
+    markerColor: '#2563eb',
+    markerStyle: 'circle',
+    markerSize: 24,
+    mapStyle: 'light-v10',
+    initialZoom: 7,
+    centerLat: null,
+    centerLng: null,
+    showCategoryFilters: true,
+    showZoomControls: true,
+    showFullscreenControl: true,
+    showNavigationControl: true,
+    showGeolocateControl: false,
+    maxZoom: 20,
+    minZoom: 0
+  });
+  const [savingMapConfig, setSavingMapConfig] = useState(false);
   const handleAddInputChange = (field, value) => {
     setAddForm(prev => ({ ...prev, [field]: value }));
     // Clear error when user starts typing
@@ -503,6 +518,41 @@ const Admin = ({ onMap }) => {
     setEditingReview(null);
   };
 
+  // Load map configuration
+  const loadMapConfig = async () => {
+    try {
+      const clientInfo = await getClientInfo();
+      if (clientInfo?.map_config) {
+        setMapConfig(clientInfo.map_config);
+      }
+    } catch (error) {
+      console.error('Error loading map config:', error);
+    }
+  };
+
+  // Save map configuration
+  const saveMapConfig = async () => {
+    setSavingMapConfig(true);
+    try {
+      // Update client with new map config
+      const { data, error } = await supabase
+        .from('clients')
+        .update({ map_config: mapConfig })
+        .eq('id', clientId);
+
+      if (error) throw error;
+      alert('Map configuration saved successfully!');
+      
+      // Notify MapView to refresh configuration
+      window.dispatchEvent(new Event('refreshMapConfig'));
+    } catch (error) {
+      console.error('Error saving map config:', error);
+      alert('Error saving map configuration: ' + error.message);
+    } finally {
+      setSavingMapConfig(false);
+    }
+  };
+
   // Load modal configuration
   const loadModalConfig = async () => {
     try {
@@ -527,12 +577,23 @@ const Admin = ({ onMap }) => {
 
       if (error) throw error;
       alert('Modal configuration saved successfully!');
+      
+      // Notify MapView to refresh configuration (in case map is currently viewed)
+      window.dispatchEvent(new Event('refreshMapConfig'));
     } catch (error) {
       console.error('Error saving modal config:', error);
       alert('Error saving modal configuration: ' + error.message);
     } finally {
       setSavingModalConfig(false);
     }
+  };
+
+  // Update map config
+  const updateMapConfig = (key, value) => {
+    setMapConfig(prev => ({
+      ...prev,
+      [key]: value
+    }));
   };
 
   // Update modal config
@@ -554,17 +615,6 @@ const Admin = ({ onMap }) => {
     }));
   };
 
-  // Add custom field
-  const addCustomField = () => {
-    setModalConfig(prev => ({
-      ...prev,
-      customFields: [
-        ...prev.customFields,
-        { type: 'text', label: '', value: '' }
-      ]
-    }));
-  };
-
   // Update custom field
   const updateCustomField = (index, field, value) => {
     setModalConfig(prev => ({
@@ -580,6 +630,17 @@ const Admin = ({ onMap }) => {
     setModalConfig(prev => ({
       ...prev,
       customFields: prev.customFields.filter((_, i) => i !== index)
+    }));
+  };
+
+  // Add custom field
+  const addCustomField = () => {
+    setModalConfig(prev => ({
+      ...prev,
+      customFields: [
+        ...prev.customFields,
+        { type: 'text', label: '', value: '' }
+      ]
     }));
   };
 
@@ -937,7 +998,7 @@ const Admin = ({ onMap }) => {
                 📊 Dashboard
               </button>
               <button
-                onClick={() => onMap(embedMarkerColor, embedMarkerStyle)}
+                onClick={() => onMap()}
                 className="w-full text-left px-4 py-2 rounded-lg font-medium transition-colors hover:bg-green-50 text-gray-700"
               >
                 🗺️ View Map
@@ -964,6 +1025,19 @@ const Admin = ({ onMap }) => {
                 }`}
               >
                 🎨 Modal Builder
+              </button>
+              <button
+                onClick={() => {
+                  setView('map-builder');
+                  loadMapConfig();
+                }}
+                className={`w-full text-left px-4 py-2 rounded-lg font-medium transition-colors ${
+                  view === 'map-builder'
+                    ? 'bg-orange-100 text-orange-700'
+                    : 'hover:bg-orange-50 text-gray-700'
+                }`}
+              >
+                🗺️ Map Builder
               </button>
               <button
                 onClick={signOut}
@@ -1072,7 +1146,7 @@ const Admin = ({ onMap }) => {
                     <div className="bg-gray-50 p-4 rounded-lg">
                       <label className="block text-sm font-medium text-gray-700 mb-2">Embed URL:</label>
                       <code className="block bg-neutral-cream p-3 rounded border text-sm break-all">
-                        {`${window.location.origin}?embed=true&client=${clientId || 'YOUR_CLIENT_ID'}&markerColor=${encodeURIComponent(embedMarkerColor)}&markerStyle=${embedMarkerStyle}`}
+                        {`${window.location.origin}?embed=true&client=${clientId || 'YOUR_CLIENT_ID'}`}
                       </code>
                     </div>
 
@@ -1081,100 +1155,16 @@ const Admin = ({ onMap }) => {
                         <label className="block text-sm font-medium text-gray-700">HTML Embed Code:</label>
                         <button
                           className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
-                          onClick={() => navigator.clipboard.writeText(`<iframe src="${window.location.origin}?embed=true&client=${clientId || 'YOUR_CLIENT_ID'}&markerColor=${encodeURIComponent(embedMarkerColor)}&markerStyle=${embedMarkerStyle}" width="100%" height="600" frameborder="0"></iframe>`)}
+                          onClick={() => navigator.clipboard.writeText(`<iframe src="${window.location.origin}?embed=true&client=${clientId || 'YOUR_CLIENT_ID'}" width="100%" height="600" frameborder="0"></iframe>`)}
                         >
                           Copy Code
                         </button>
                       </div>
                       <code className="block bg-neutral-cream p-3 rounded border text-sm break-all">
-                        {`<iframe src="${window.location.origin}?embed=true&client=${clientId || 'YOUR_CLIENT_ID'}&markerColor=${encodeURIComponent(embedMarkerColor)}&markerStyle=${embedMarkerStyle}" width="100%" height="600" frameborder="0"></iframe>`}
+                        {`<iframe src="${window.location.origin}?embed=true&client=${clientId || 'YOUR_CLIENT_ID'}" width="100%" height="600" frameborder="0"></iframe>`}
                       </code>
                     </div>
 
-                    {/* Customization Controls */}
-                    <div className="bg-white border border-gray-200 rounded-lg p-6 mt-6">
-                      <h4 className="text-lg font-semibold text-gray-800 mb-4">Map Customization</h4>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Marker Color */}
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Marker Color</label>
-                          <div className="flex items-center gap-3">
-                            <input
-                              type="color"
-                              value={embedMarkerColor}
-                              onChange={(e) => setEmbedMarkerColor(e.target.value)}
-                              className="w-12 h-10 border border-gray-300 rounded cursor-pointer"
-                            />
-                            <input
-                              type="text"
-                              value={embedMarkerColor}
-                              onChange={(e) => setEmbedMarkerColor(e.target.value)}
-                              className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
-                              placeholder="#2563eb"
-                            />
-                          </div>
-                          <p className="text-xs text-gray-500 mt-1">Choose the color for map markers</p>
-                        </div>
-
-                        {/* Marker Style */}
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Marker Style</label>
-                          <select
-                            value={embedMarkerStyle}
-                            onChange={(e) => setEmbedMarkerStyle(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          >
-                            <option value="circle">Circle</option>
-                            <option value="square">Square</option>
-                            <option value="triangle">Triangle</option>
-                            <option value="diamond">Diamond</option>
-                            <option value="pin">Location Pin</option>
-                          </select>
-                          <p className="text-xs text-gray-500 mt-1">Select the shape of map markers</p>
-                        </div>
-                      </div>
-
-                      {/* Preview */}
-                      <div className="mt-6">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Preview</label>
-                        <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
-                          <div className="text-sm text-gray-600">Marker:</div>
-                          <div 
-                            className="w-6 h-6 border-2 border-white shadow-sm"
-                            style={{
-                              backgroundColor: embedMarkerColor,
-                              borderRadius: embedMarkerStyle === 'circle' ? '50%' : 
-                                          embedMarkerStyle === 'square' ? '0' : 
-                                          embedMarkerStyle === 'triangle' ? '0' : 
-                                          embedMarkerStyle === 'diamond' ? '0' :
-                                          embedMarkerStyle === 'pin' ? '50% 50% 50% 50% / 60% 60% 40% 40%' : '50%',
-                              clipPath: embedMarkerStyle === 'triangle' ? 'polygon(50% 0%, 0% 100%, 100% 100%)' : 
-                                       embedMarkerStyle === 'diamond' ? 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)' :
-                                       embedMarkerStyle === 'pin' ? 'polygon(50% 0%, 85% 35%, 70% 65%, 50% 100%, 30% 65%, 15% 35%)' : 'none'
-                            }}
-                          ></div>
-                          <div className="text-sm text-gray-600">
-                            {embedMarkerStyle === 'circle' ? 'Circle' :
-                             embedMarkerStyle === 'square' ? 'Square' :
-                             embedMarkerStyle === 'triangle' ? 'Triangle' :
-                             embedMarkerStyle === 'diamond' ? 'Diamond' :
-                             embedMarkerStyle === 'pin' ? 'Location Pin' : 'Unknown'} • {embedMarkerColor}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-                      <h4 className="font-semibold text-blue-800 mb-2">Customization Options:</h4>
-                      <ul className="text-sm text-blue-700 space-y-1">
-                        <li>• <code>width</code> and <code>height</code>: Adjust iframe dimensions</li>
-                        <li>• <code>project=PROJECT_ID</code>: Show only a specific project</li>
-                        <li>• <code>filter=published</code>: Only show published projects (default)</li>
-                        <li>• <code>markerColor=HEX_COLOR</code>: Set marker color (e.g., #2563eb)</li>
-                        <li>• <code>markerStyle=STYLE</code>: Set marker style (circle, square, triangle, diamond)</li>
-                      </ul>
-                    </div>
                   </div>
                 </div>
               </div>
@@ -1479,6 +1469,319 @@ const Admin = ({ onMap }) => {
                             </button>
                           </div>
                         )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : view === 'map-builder' ? (
+              <div className="bg-neutral-cream rounded-xl shadow p-8">
+                <div className="flex justify-between items-center mb-6">
+                  <div className="flex items-center space-x-4">
+                    <button
+                      onClick={handleBackToDashboard}
+                      className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                    >
+                      ← Back to Dashboard
+                    </button>
+                    <h2 className="text-2xl font-bold text-orange-700">Map Builder</h2>
+                  </div>
+                  <button
+                    onClick={saveMapConfig}
+                    disabled={savingMapConfig}
+                    className="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {savingMapConfig ? 'Saving...' : 'Save Configuration'}
+                  </button>
+                </div>
+
+                <div className="space-y-8">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4">Map Appearance</h3>
+                    <div className="bg-white border border-gray-200 rounded-lg p-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Map Style</label>
+                          <select
+                            value={mapConfig.mapStyle}
+                            onChange={(e) => updateMapConfig('mapStyle', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                          >
+                            <option value="light-v10">Light</option>
+                            <option value="dark-v10">Dark</option>
+                            <option value="streets-v11">Streets</option>
+                            <option value="satellite-v9">Satellite</option>
+                            <option value="satellite-streets-v11">Satellite Streets</option>
+                            <option value="outdoors-v11">Outdoors</option>
+                          </select>
+                          <p className="text-xs text-gray-500 mt-1">Choose the base map style</p>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Initial Zoom Level</label>
+                          <input
+                            type="number"
+                            min="0"
+                            max="20"
+                            step="0.5"
+                            value={mapConfig.initialZoom}
+                            onChange={(e) => updateMapConfig('initialZoom', parseFloat(e.target.value))}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                          />
+                          <p className="text-xs text-gray-500 mt-1">Default zoom level when map loads (0-20)</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4">Map Center</h3>
+                    <div className="bg-white border border-gray-200 rounded-lg p-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Center Latitude</label>
+                          <input
+                            type="number"
+                            step="any"
+                            value={mapConfig.centerLat || ''}
+                            onChange={(e) => updateMapConfig('centerLat', e.target.value === '' ? null : parseFloat(e.target.value))}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                          />
+                          <p className="text-xs text-gray-500 mt-1">Latitude coordinate for map center</p>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Center Longitude</label>
+                          <input
+                            type="number"
+                            step="any"
+                            value={mapConfig.centerLng || ''}
+                            onChange={(e) => updateMapConfig('centerLng', e.target.value === '' ? null : parseFloat(e.target.value))}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                          />
+                          <p className="text-xs text-gray-500 mt-1">Longitude coordinate for map center</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4">Marker Settings</h3>
+                    <div className="bg-white border border-gray-200 rounded-lg p-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Marker Color</label>
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="color"
+                              value={mapConfig.markerColor}
+                              onChange={(e) => updateMapConfig('markerColor', e.target.value)}
+                              className="w-12 h-10 border border-gray-300 rounded cursor-pointer"
+                            />
+                            <input
+                              type="text"
+                              value={mapConfig.markerColor}
+                              onChange={(e) => updateMapConfig('markerColor', e.target.value)}
+                              className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 font-mono text-sm"
+                              placeholder="#2563eb"
+                            />
+                          </div>
+                          <p className="text-xs text-gray-500 mt-1">Choose the color for map markers</p>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Marker Style</label>
+                          <select
+                            value={mapConfig.markerStyle}
+                            onChange={(e) => updateMapConfig('markerStyle', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                          >
+                            <option value="circle">Circle</option>
+                            <option value="square">Square</option>
+                            <option value="triangle">Triangle</option>
+                            <option value="diamond">Diamond</option>
+                            <option value="pin">Location Pin</option>
+                          </select>
+                          <p className="text-xs text-gray-500 mt-1">Select the shape of map markers</p>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Marker Size</label>
+                          <input
+                            type="number"
+                            min="16"
+                            max="48"
+                            step="2"
+                            value={mapConfig.markerSize}
+                            onChange={(e) => updateMapConfig('markerSize', parseInt(e.target.value))}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                          />
+                          <p className="text-xs text-gray-500 mt-1">Size of markers in pixels (16-48)</p>
+                        </div>
+                      </div>
+
+                      <div className="mt-6">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Marker Preview</label>
+                        <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
+                          <div className="text-sm text-gray-600">Marker:</div>
+                          <div 
+                            className="border-2 border-white shadow-sm"
+                            style={{
+                              width: `${Math.min(mapConfig.markerSize, 32)}px`,
+                              height: `${Math.min(mapConfig.markerSize, 32)}px`,
+                              backgroundColor: mapConfig.markerColor,
+                              borderRadius: mapConfig.markerStyle === 'circle' ? '50%' : 
+                                          mapConfig.markerStyle === 'square' ? '0' : 
+                                          mapConfig.markerStyle === 'triangle' ? '0' : 
+                                          mapConfig.markerStyle === 'diamond' ? '0' :
+                                          mapConfig.markerStyle === 'pin' ? '50% 50% 50% 50% / 60% 60% 40% 40%' : '50%',
+                              clipPath: mapConfig.markerStyle === 'triangle' ? 'polygon(50% 0%, 0% 100%, 100% 100%)' : 
+                                       mapConfig.markerStyle === 'diamond' ? 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)' :
+                                       mapConfig.markerStyle === 'pin' ? 'polygon(50% 0%, 85% 35%, 70% 65%, 50% 100%, 30% 65%, 15% 35%)' : 'none'
+                            }}
+                          ></div>
+                          <div className="text-sm text-gray-600">
+                            {mapConfig.markerStyle === 'circle' ? 'Circle' :
+                             mapConfig.markerStyle === 'square' ? 'Square' :
+                             mapConfig.markerStyle === 'triangle' ? 'Triangle' :
+                             mapConfig.markerStyle === 'diamond' ? 'Diamond' :
+                             mapConfig.markerStyle === 'pin' ? 'Location Pin' : 'Unknown'} • {mapConfig.markerColor} • {mapConfig.markerSize}px
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4">Map Controls</h3>
+                    <div className="bg-white border border-gray-200 rounded-lg p-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-3">
+                          <div className="flex items-center">
+                            <input
+                              type="checkbox"
+                              id="showCategoryFilters"
+                              checked={mapConfig.showCategoryFilters}
+                              onChange={(e) => updateMapConfig('showCategoryFilters', e.target.checked)}
+                              className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
+                            />
+                            <label htmlFor="showCategoryFilters" className="ml-2 block text-sm text-gray-900">
+                              Show Category Filters
+                            </label>
+                          </div>
+                          <div className="flex items-center">
+                            <input
+                              type="checkbox"
+                              id="showZoomControls"
+                              checked={mapConfig.showZoomControls}
+                              onChange={(e) => updateMapConfig('showZoomControls', e.target.checked)}
+                              className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
+                            />
+                            <label htmlFor="showZoomControls" className="ml-2 block text-sm text-gray-900">
+                              Show Zoom Controls
+                            </label>
+                          </div>
+                          <div className="flex items-center">
+                            <input
+                              type="checkbox"
+                              id="showNavigationControl"
+                              checked={mapConfig.showNavigationControl}
+                              onChange={(e) => updateMapConfig('showNavigationControl', e.target.checked)}
+                              className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
+                            />
+                            <label htmlFor="showNavigationControl" className="ml-2 block text-sm text-gray-900">
+                              Show Navigation Control
+                            </label>
+                          </div>
+                        </div>
+                        <div className="space-y-3">
+                          <div className="flex items-center">
+                            <input
+                              type="checkbox"
+                              id="showFullscreenControl"
+                              checked={mapConfig.showFullscreenControl}
+                              onChange={(e) => updateMapConfig('showFullscreenControl', e.target.checked)}
+                              className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
+                            />
+                            <label htmlFor="showFullscreenControl" className="ml-2 block text-sm text-gray-900">
+                              Show Fullscreen Control
+                            </label>
+                          </div>
+                          <div className="flex items-center">
+                            <input
+                              type="checkbox"
+                              id="showGeolocateControl"
+                              checked={mapConfig.showGeolocateControl}
+                              onChange={(e) => updateMapConfig('showGeolocateControl', e.target.checked)}
+                              className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
+                            />
+                            <label htmlFor="showGeolocateControl" className="ml-2 block text-sm text-gray-900">
+                              Show Geolocation Control
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4">Zoom Limits</h3>
+                    <div className="bg-white border border-gray-200 rounded-lg p-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Minimum Zoom</label>
+                          <input
+                            type="number"
+                            min="0"
+                            max="20"
+                            step="1"
+                            value={mapConfig.minZoom}
+                            onChange={(e) => updateMapConfig('minZoom', parseInt(e.target.value))}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                          />
+                          <p className="text-xs text-gray-500 mt-1">Minimum zoom level allowed (0-20)</p>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Maximum Zoom</label>
+                          <input
+                            type="number"
+                            min="0"
+                            max="20"
+                            step="1"
+                            value={mapConfig.maxZoom}
+                            onChange={(e) => updateMapConfig('maxZoom', parseInt(e.target.value))}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                          />
+                          <p className="text-xs text-gray-500 mt-1">Maximum zoom level allowed (0-20)</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4">Configuration Summary</h3>
+                    <div className="bg-white border border-gray-200 rounded-lg p-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                          <h4 className="font-medium text-gray-800 mb-2">Map Settings</h4>
+                          <ul className="text-sm text-gray-600 space-y-1">
+                            <li><strong>Style:</strong> {mapConfig.mapStyle.replace('-v', ' v').replace(/(\d+)/, '$1')}</li>
+                            <li><strong>Center:</strong> {mapConfig.centerLat && mapConfig.centerLng ? `${mapConfig.centerLat.toFixed(4)}, ${mapConfig.centerLng.toFixed(4)}` : 'Auto (First Project)'}</li>
+                            <li><strong>Initial Zoom:</strong> {mapConfig.initialZoom}</li>
+                            <li><strong>Zoom Range:</strong> {mapConfig.minZoom} - {mapConfig.maxZoom}</li>
+                          </ul>
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-gray-800 mb-2">Marker & Controls</h4>
+                          <ul className="text-sm text-gray-600 space-y-1">
+                            <li><strong>Marker:</strong> {mapConfig.markerStyle} ({mapConfig.markerSize}px, {mapConfig.markerColor})</li>
+                            <li><strong>Category Filters:</strong> {mapConfig.showCategoryFilters ? 'Enabled' : 'Disabled'}</li>
+                            <li><strong>Navigation:</strong> {mapConfig.showNavigationControl ? 'Enabled' : 'Disabled'}</li>
+                            <li><strong>Fullscreen:</strong> {mapConfig.showFullscreenControl ? 'Enabled' : 'Disabled'}</li>
+                            <li><strong>Geolocation:</strong> {mapConfig.showGeolocateControl ? 'Enabled' : 'Disabled'}</li>
+                          </ul>
+                        </div>
                       </div>
                     </div>
                   </div>

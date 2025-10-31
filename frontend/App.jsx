@@ -28,7 +28,6 @@ const App = () => {
     const client = urlParams.get('client');
     return (embed === 'true' && client) ? 'embed' : 'marketing';
   });
-  const [mapCustomization, setMapCustomization] = useState({ markerColor: '#2563eb', markerStyle: 'circle' });
   const [embedParams, setEmbedParams] = useState(getInitialEmbedParams);
   const { user, client, loading } = useAuth();
 
@@ -55,10 +54,7 @@ const App = () => {
     setCurrentView('signup');
   };
 
-  const handleMap = (markerColor, markerStyle) => {
-    if (markerColor && markerStyle) {
-      setMapCustomization({ markerColor, markerStyle });
-    }
+  const handleMap = () => {
     setCurrentView('map');
   };
 
@@ -161,7 +157,7 @@ const App = () => {
                 </button>
               </div>
             </div>
-            <MapView clientId={client?.clients?.id} embedParams={mapCustomization} />
+            <MapView clientId={client?.clients?.id} user={user} />
           </div>
         );
       case 'embed':

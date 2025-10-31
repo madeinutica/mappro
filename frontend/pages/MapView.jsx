@@ -17,6 +17,7 @@ const MapView = ({ user, embedMode = false, embedParams = {}, clientId }) => {
   const [projects, setProjects] = useState([]);
   const [clientInfo, setClientInfo] = useState(null);
   const [modalConfig, setModalConfig] = useState(null);
+  const [mapConfig, setMapConfig] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [imageModal, setImageModal] = useState({ isOpen: false, src: '', alt: '' });
@@ -120,17 +121,6 @@ const MapView = ({ user, embedMode = false, embedParams = {}, clientId }) => {
         setDynamicFilters(filters);
         setProjects(filteredProjects);
         dataFetchedRef.current = true;
-
-        if (user) {
-          try {
-            const clientData = await getClientInfo();
-            setClientInfo(clientData);
-            setModalConfig(clientData?.modal_config || null);
-          } catch (clientErr) {
-            console.warn('Failed to fetch client info:', clientErr);
-            // Don't set error for client info failure, it's not critical
-          }
-        }
       } catch (err) {
         console.error('Error fetching data:', err);
         setError(err.message || 'Failed to load projects');
@@ -141,6 +131,38 @@ const MapView = ({ user, embedMode = false, embedParams = {}, clientId }) => {
 
     fetchData();
   }, [user?.email, JSON.stringify(embedParams), clientId]); // Use stable values
+
+  // Load client configuration separately (can be refreshed independently)
+  useEffect(() => {
+    const loadClientConfig = async () => {
+      try {
+        console.log('Loading client configuration...');
+        const clientData = await getClientInfo();
+        setClientInfo(clientData);
+        setModalConfig(clientData?.modal_config || null);
+        setMapConfig(clientData?.map_config || null);
+        console.log('Client configuration loaded:', clientData?.map_config);
+      } catch (clientErr) {
+        console.warn('Failed to fetch client info:', clientErr);
+        // Don't set error for client info failure, it's not critical
+      }
+    };
+
+    // Always load fresh config when component mounts or when refresh is triggered
+    loadClientConfig();
+
+    // Listen for configuration refresh events
+    const handleConfigRefresh = () => {
+      console.log('Configuration refresh requested');
+      loadClientConfig(); // Reload config immediately
+    };
+
+    window.addEventListener('refreshMapConfig', handleConfigRefresh);
+
+    return () => {
+      window.removeEventListener('refreshMapConfig', handleConfigRefresh);
+    };
+  }, [user?.email, clientId]); // Re-load config when user or client changes
 
   // Apply category filtering to projects
   useEffect(() => {
@@ -185,11 +207,38 @@ const MapView = ({ user, embedMode = false, embedParams = {}, clientId }) => {
       console.log('Creating map with container:', mapContainer.current);
       console.log('Container dimensions:', mapContainer.current?.offsetWidth, mapContainer.current?.offsetHeight);
 
+      // Use mapConfig if available, otherwise fall back to defaults
+      const mapStyle = mapConfig?.mapStyle ? `mapbox://styles/mapbox/${mapConfig.mapStyle}` : 'mapbox://styles/mapbox/light-v10';
+      
+      // Calculate center: use mapConfig if set, otherwise center on first project or default
+      let centerLat, centerLng;
+      if (mapConfig?.centerLat !== undefined && mapConfig?.centerLng !== undefined && mapConfig?.centerLat !== null && mapConfig?.centerLng !== null) {
+        // Use custom center from map config
+        centerLat = mapConfig.centerLat;
+        centerLng = mapConfig.centerLng;
+        console.log('Using custom center from config:', centerLat, centerLng);
+      } else if (filteredProjects.length > 0) {
+        // Center on first project if no custom center is set
+        const firstProject = filteredProjects[0];
+        centerLat = parseFloat(firstProject.lat);
+        centerLng = parseFloat(firstProject.lng);
+        console.log('Centering map on first project:', firstProject.name, centerLat, centerLng);
+      } else {
+        // Fallback to default (New York area)
+        centerLat = 42.7;
+        centerLng = -75.5;
+        console.log('Using default center:', centerLat, centerLng);
+      }
+      
+      const initialZoom = mapConfig?.initialZoom || 7;
+
       map.current = new mapboxgl.Map({
         container: mapContainer.current,
-        style: 'mapbox://styles/mapbox/light-v10',
-        center: [-75.5, 42.7],
-        zoom: 7
+        style: mapStyle,
+        center: [centerLng, centerLat],
+        zoom: initialZoom,
+        minZoom: mapConfig?.minZoom || 0,
+        maxZoom: mapConfig?.maxZoom || 20
       });
 
       console.log('Map created:', map.current);
@@ -197,6 +246,28 @@ const MapView = ({ user, embedMode = false, embedParams = {}, clientId }) => {
       map.current.on('load', () => {
         console.log('🗺️ Map loaded successfully');
         setMapInitialized(true);
+
+        // Add map controls based on configuration
+        if (mapConfig) {
+          if (mapConfig.showNavigationControl) {
+            map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
+          }
+          if (mapConfig.showFullscreenControl) {
+            map.current.addControl(new mapboxgl.FullscreenControl(), 'top-right');
+          }
+          if (mapConfig.showGeolocateControl) {
+            map.current.addControl(new mapboxgl.GeolocateControl({
+              positionOptions: {
+                enableHighAccuracy: true
+              },
+              trackUserLocation: true
+            }), 'top-right');
+          }
+        } else {
+          // Default controls if no config
+          map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
+          map.current.addControl(new mapboxgl.FullscreenControl(), 'top-right');
+        }
       });
 
       map.current.on('error', (e) => {
@@ -218,6 +289,55 @@ const MapView = ({ user, embedMode = false, embedParams = {}, clientId }) => {
       }
     };
   }, [loading, error]);
+
+  // Update map configuration when mapConfig changes
+  useEffect(() => {
+    if (!map.current || !mapInitialized || !mapConfig) {
+      return;
+    }
+
+    console.log('🔧 Updating map configuration:', mapConfig);
+
+    try {
+      // Update map style if it changed
+      const newStyle = `mapbox://styles/mapbox/${mapConfig.mapStyle}`;
+      if (map.current.getStyle().sprite !== newStyle.split('/').pop()) {
+        map.current.setStyle(newStyle);
+      }
+
+      // Update center if custom center is set
+      if (mapConfig.centerLat !== undefined && mapConfig.centerLng !== undefined && mapConfig.centerLat !== null && mapConfig.centerLng !== null) {
+        map.current.setCenter([mapConfig.centerLng, mapConfig.centerLat]);
+        console.log('Updated map center to:', mapConfig.centerLat, mapConfig.centerLng);
+      } else if (filteredProjects.length > 0) {
+        // Center on first project if no custom center is set
+        const firstProject = filteredProjects[0];
+        const centerLat = parseFloat(firstProject.lat);
+        const centerLng = parseFloat(firstProject.lng);
+        map.current.setCenter([centerLng, centerLat]);
+        console.log('Centered map on first project:', firstProject.name, centerLat, centerLng);
+      }
+
+      // Update zoom levels
+      if (mapConfig.initialZoom !== undefined) {
+        map.current.setZoom(mapConfig.initialZoom);
+      }
+      if (mapConfig.minZoom !== undefined) {
+        map.current.setMinZoom(mapConfig.minZoom);
+      }
+      if (mapConfig.maxZoom !== undefined) {
+        map.current.setMaxZoom(mapConfig.maxZoom);
+      }
+
+      // Update controls
+      // Note: Mapbox GL JS doesn't provide a way to remove controls once added,
+      // so we would need to reinitialize the map to change controls.
+      // For now, we'll skip control updates as they require map reinitialization.
+
+    } catch (err) {
+      console.error('Error updating map configuration:', err);
+    }
+  }, [mapConfig, mapInitialized, filteredProjects]);
 
   // Update markers when projects change or map initializes
   useEffect(() => {
@@ -274,16 +394,17 @@ const MapView = ({ user, embedMode = false, embedParams = {}, clientId }) => {
 
         console.log('Creating marker at:', lng, lat);
 
-        // Get marker customization from embed params or use defaults
-        const markerColor = embedParams?.markerColor || '#2563eb';
-        const markerStyle = embedParams?.markerStyle || 'circle';
+        // Get marker customization from mapConfig or embed params or use defaults
+        const markerColor = embedParams?.markerColor || mapConfig?.markerColor || '#2563eb';
+        const markerStyle = embedParams?.markerStyle || mapConfig?.markerStyle || 'circle';
+        const markerSize = embedParams?.markerSize || mapConfig?.markerSize || 24;
 
         // Create a custom marker element based on style
         const el = document.createElement('div');
         
         // Set base styles
-        el.style.width = '24px';
-        el.style.height = '24px';
+        el.style.width = `${markerSize}px`;
+        el.style.height = `${markerSize}px`;
         el.style.boxShadow = '0 0 4px rgba(0,0,0,0.2)';
         el.style.border = '2px solid #fff';
         el.style.cursor = 'pointer';
@@ -306,7 +427,7 @@ const MapView = ({ user, embedMode = false, embedParams = {}, clientId }) => {
             el.style.clipPath = 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)';
             break;
           case 'pin':
-            el.style.borderRadius = '50% 50% 50% 50% / 60% 60% 40% 40%';
+            el.style.borderRadius = '0';
             el.style.clipPath = 'polygon(50% 0%, 85% 35%, 70% 65%, 50% 100%, 30% 65%, 15% 35%)';
             break;
           default:
@@ -375,7 +496,7 @@ const MapView = ({ user, embedMode = false, embedParams = {}, clientId }) => {
     });
     
     console.log('Finished adding markers, total markers now:', markersRef.current.length);
-  }, [filteredProjects, mapInitialized]);
+  }, [filteredProjects, mapInitialized, mapConfig]);
 
   // Set up global function for image modal
   useEffect(() => {
@@ -449,7 +570,7 @@ const MapView = ({ user, embedMode = false, embedParams = {}, clientId }) => {
     );
   }
 
-  const markerColor = embedParams?.markerColor || '#2563eb';
+  const markerColor = embedParams?.markerColor || mapConfig?.markerColor || '#2563eb';
 
   return (
     <div className={`w-full ${embedMode ? 'h-full' : 'h-[600px] relative'} font-inter`}>
@@ -466,22 +587,24 @@ const MapView = ({ user, embedMode = false, embedParams = {}, clientId }) => {
       <div ref={mapContainer} className={`w-full ${embedMode ? 'h-full' : 'h-[600px]'}`} style={{ minHeight: '400px' }} />
 
       {/* Category Filter Buttons - Bottom Right */}
-      <div className="absolute bottom-4 right-4 flex flex-col gap-2 z-10">
-        {dynamicFilters.map(filter => (
-          <button
-            key={filter.key}
-            onClick={() => setSelectedCategory(filter.key)}
-            className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-              selectedCategory === filter.key
-                ? 'text-white shadow-md'
-                : 'bg-white text-gray-700 hover:bg-gray-50 shadow-md'
-            }`}
-            style={selectedCategory === filter.key ? { backgroundColor: markerColor } : {}}
-          >
-            {filter.label}
-          </button>
-        ))}
-      </div>
+      {(!mapConfig || mapConfig.showCategoryFilters !== false) && (
+        <div className="absolute bottom-4 right-4 flex flex-col gap-2 z-10">
+          {dynamicFilters.map(filter => (
+            <button
+              key={filter.key}
+              onClick={() => setSelectedCategory(filter.key)}
+              className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                selectedCategory === filter.key
+                  ? 'text-white shadow-md'
+                  : 'bg-white text-gray-700 hover:bg-gray-50 shadow-md'
+              }`}
+              style={selectedCategory === filter.key ? { backgroundColor: markerColor } : {}}
+            >
+              {filter.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Image Modal - only show in non-embed mode */}
       {!embedMode && imageModal.isOpen && (
