@@ -396,6 +396,8 @@ const MapView = ({ user, embedMode = false, embedParams = {}, clientId }) => {
     );
   }
 
+  const markerColor = embedParams?.markerColor || '#2563eb';
+
   return (
     <div className={`w-full ${embedMode ? 'h-full' : 'h-[600px] relative'} font-inter`}>
       {!embedMode && loading && (
@@ -416,9 +418,10 @@ const MapView = ({ user, embedMode = false, embedParams = {}, clientId }) => {
           onClick={() => setSelectedCategory('all')}
           className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
             selectedCategory === 'all'
-              ? 'bg-blue-600 text-white'
+              ? 'text-white shadow-md'
               : 'bg-white text-gray-700 hover:bg-gray-50 shadow-md'
           }`}
+          style={selectedCategory === 'all' ? { backgroundColor: markerColor } : {}}
         >
           All
         </button>
@@ -426,9 +429,10 @@ const MapView = ({ user, embedMode = false, embedParams = {}, clientId }) => {
           onClick={() => setSelectedCategory('doors-windows')}
           className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
             selectedCategory === 'doors-windows'
-              ? 'bg-blue-600 text-white'
+              ? 'text-white shadow-md'
               : 'bg-white text-gray-700 hover:bg-gray-50 shadow-md'
           }`}
+          style={selectedCategory === 'doors-windows' ? { backgroundColor: markerColor } : {}}
         >
           Doors & Windows
         </button>
@@ -436,9 +440,10 @@ const MapView = ({ user, embedMode = false, embedParams = {}, clientId }) => {
           onClick={() => setSelectedCategory('bathrooms')}
           className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
             selectedCategory === 'bathrooms'
-              ? 'bg-blue-600 text-white'
+              ? 'text-white shadow-md'
               : 'bg-white text-gray-700 hover:bg-gray-50 shadow-md'
           }`}
+          style={selectedCategory === 'bathrooms' ? { backgroundColor: markerColor } : {}}
         >
           Bathrooms
         </button>
@@ -446,9 +451,10 @@ const MapView = ({ user, embedMode = false, embedParams = {}, clientId }) => {
           onClick={() => setSelectedCategory('siding')}
           className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
             selectedCategory === 'siding'
-              ? 'bg-blue-600 text-white'
+              ? 'text-white shadow-md'
               : 'bg-white text-gray-700 hover:bg-gray-50 shadow-md'
           }`}
+          style={selectedCategory === 'siding' ? { backgroundColor: markerColor } : {}}
         >
           Siding
         </button>
