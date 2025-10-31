@@ -99,7 +99,17 @@ const Auth = ({ onBackToMarketing, onLoginSuccess, isLogin: initialIsLogin = tru
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8 relative">
+      {/* Back to Home Link */}
+      <div className="absolute top-4 right-4">
+        <button
+          onClick={onBackToMarketing}
+          className="text-black hover:text-gray-700 text-sm font-medium"
+        >
+          ← Back to Home
+        </button>
+      </div>
+      
       <div className="max-w-md w-full space-y-8">
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">

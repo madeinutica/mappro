@@ -20,6 +20,8 @@ const MapView = ({ user, embedMode = false, embedParams = {}, clientId }) => {
   const [error, setError] = useState(null);
   const [imageModal, setImageModal] = useState({ isOpen: false, src: '', alt: '' });
   const [mapInitialized, setMapInitialized] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [filteredProjects, setFilteredProjects] = useState([]);
   const previousProjectsRef = useRef(null);
   const dataFetchedRef = useRef(false);
   const lastUserRef = useRef(null);
@@ -47,7 +49,7 @@ const MapView = ({ user, embedMode = false, embedParams = {}, clientId }) => {
         const projectsData = await getProjects(false, embedParams.clientId, clientId);
         console.log('Projects fetched:', projectsData);
         
-        // Filter projects based on embed parameters
+        // Filter projects based on embed parameters and category filter
         let filteredProjects = projectsData || [];
         if (embedParams.projectId) {
           filteredProjects = filteredProjects.filter(p => p.id === embedParams.projectId);
@@ -83,6 +85,37 @@ const MapView = ({ user, embedMode = false, embedParams = {}, clientId }) => {
 
     fetchData();
   }, [user?.email, JSON.stringify(embedParams), clientId]); // Use stable values
+
+  // Apply category filtering to projects
+  useEffect(() => {
+    if (selectedCategory === 'all') {
+      setFilteredProjects(projects);
+    } else {
+      const filtered = projects.filter(project => {
+        const categories = [];
+        // Check all category fields
+        for (let i = 1; i <= 7; i++) {
+          const categoryValue = project[`Category ${i}`];
+          if (categoryValue && categoryValue !== 'null' && categoryValue !== '') {
+            categories.push(categoryValue.toLowerCase());
+          }
+        }
+        
+        // Handle combined doors & windows category
+        if (selectedCategory === 'doors-windows') {
+          return categories.some(cat => cat.includes('doors') || cat.includes('windows'));
+        }
+        
+        // Handle bathrooms category (also includes baths)
+        if (selectedCategory === 'bathrooms') {
+          return categories.some(cat => cat.includes('bathrooms') || cat.includes('baths'));
+        }
+        
+        return categories.some(cat => cat.includes(selectedCategory.toLowerCase()));
+      });
+      setFilteredProjects(filtered);
+    }
+  }, [projects, selectedCategory]);
 
   // Initialize map only once
   useEffect(() => {
@@ -137,15 +170,15 @@ const MapView = ({ user, embedMode = false, embedParams = {}, clientId }) => {
   useEffect(() => {
     console.log('🔄 Markers effect triggered:', {
       mapInitialized,
-      projectsLength: projects.length,
+      projectsLength: filteredProjects.length,
       hasMap: !!map.current,
-      projectsChanged: JSON.stringify(projects) !== JSON.stringify(previousProjectsRef.current)
+      projectsChanged: JSON.stringify(filteredProjects) !== JSON.stringify(previousProjectsRef.current)
     });
 
     // Always update markers if map is initialized and we have projects
     // Don't skip just because projects haven't changed - we need to create markers on first load
-    if (!mapInitialized || !map.current || !projects.length) {
-      console.log('⏭️ Skipping marker creation:', { mapInitialized, hasMap: !!map.current, hasProjects: projects.length > 0 });
+    if (!mapInitialized || !map.current || !filteredProjects.length) {
+      console.log('⏭️ Skipping marker creation:', { mapInitialized, hasMap: !!map.current, hasProjects: filteredProjects.length > 0 });
       return;
     }
 
@@ -155,7 +188,7 @@ const MapView = ({ user, embedMode = false, embedParams = {}, clientId }) => {
       return;
     }
 
-    console.log('📍 Updating markers for projects:', projects.map(p => p.name));
+    console.log('📍 Updating markers for projects:', filteredProjects.map(p => p.name));
 
     // Clear existing markers
     console.log('Clearing existing markers:', markersRef.current.length);
@@ -169,7 +202,7 @@ const MapView = ({ user, embedMode = false, embedParams = {}, clientId }) => {
     markersRef.current = [];
     console.log('Markers cleared, now adding new ones');
 
-    projects.forEach(project => {
+    filteredProjects.forEach(project => {
       try {
         console.log('Adding marker for project:', project.name, project.lat, project.lng, typeof project.lat, typeof project.lng);
         if (!project.lng || !project.lat) {
@@ -289,7 +322,7 @@ const MapView = ({ user, embedMode = false, embedParams = {}, clientId }) => {
     });
     
     console.log('Finished adding markers, total markers now:', markersRef.current.length);
-  }, [projects, mapInitialized]);
+  }, [filteredProjects, mapInitialized]);
 
   // Set up global function for image modal
   useEffect(() => {
@@ -364,7 +397,7 @@ const MapView = ({ user, embedMode = false, embedParams = {}, clientId }) => {
   }
 
   return (
-    <div className={`w-full ${embedMode ? 'h-full' : 'h-screen relative'} font-inter`}>
+    <div className={`w-full ${embedMode ? 'h-full' : 'h-[600px] relative'} font-inter`}>
       {!embedMode && loading && (
         <div className="absolute inset-0 flex items-center justify-center bg-neutral-cream z-10 font-lato">
           <div className="text-lg text-primary-700">Loading map...</div>
@@ -375,7 +408,51 @@ const MapView = ({ user, embedMode = false, embedParams = {}, clientId }) => {
           <div className="text-accent-600">Error: {error}</div>
         </div>
       )}
-      <div ref={mapContainer} className={`w-full ${embedMode ? 'h-full' : 'h-screen'}`} style={{ minHeight: '400px' }} />
+      <div ref={mapContainer} className={`w-full ${embedMode ? 'h-full' : 'h-[600px]'}`} style={{ minHeight: '400px' }} />
+
+      {/* Category Filter Buttons - Bottom Right */}
+      <div className="absolute bottom-4 right-4 flex flex-col gap-2 z-10">
+        <button
+          onClick={() => setSelectedCategory('all')}
+          className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+            selectedCategory === 'all'
+              ? 'bg-blue-600 text-white'
+              : 'bg-white text-gray-700 hover:bg-gray-50 shadow-md'
+          }`}
+        >
+          All
+        </button>
+        <button
+          onClick={() => setSelectedCategory('doors-windows')}
+          className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+            selectedCategory === 'doors-windows'
+              ? 'bg-blue-600 text-white'
+              : 'bg-white text-gray-700 hover:bg-gray-50 shadow-md'
+          }`}
+        >
+          Doors & Windows
+        </button>
+        <button
+          onClick={() => setSelectedCategory('bathrooms')}
+          className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+            selectedCategory === 'bathrooms'
+              ? 'bg-blue-600 text-white'
+              : 'bg-white text-gray-700 hover:bg-gray-50 shadow-md'
+          }`}
+        >
+          Bathrooms
+        </button>
+        <button
+          onClick={() => setSelectedCategory('siding')}
+          className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+            selectedCategory === 'siding'
+              ? 'bg-blue-600 text-white'
+              : 'bg-white text-gray-700 hover:bg-gray-50 shadow-md'
+          }`}
+        >
+          Siding
+        </button>
+      </div>
 
       {/* Image Modal - only show in non-embed mode */}
       {!embedMode && imageModal.isOpen && (
