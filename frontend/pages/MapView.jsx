@@ -623,7 +623,7 @@ const MapView = ({ user, embedMode = false, embedParams = {}, clientId }) => {
       {/* Logo - Bottom Left */}
       <div className="absolute bottom-4 left-4 z-10">
         <a href="/" target="_blank" rel="noopener noreferrer">
-          <img src="/assets/logos/mappro-logo.png" alt="MapPro" className="max-w-[130px] h-auto cursor-pointer hover:opacity-80 transition-opacity" />
+          <img src="/assets/logos/mappro-logo.png" alt="MapPro" className="max-w-[130px] h-auto cursor-pointer hover:opacity-80 transition-opacity grayscale" />
         </a>
       </div>
 
