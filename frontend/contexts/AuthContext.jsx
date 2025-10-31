@@ -157,8 +157,9 @@ export const AuthProvider = ({ children }) => {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       console.log('Firebase sign up successful:', userCredential.user.email);
 
-      // Generate a client name from email domain if not provided
-      const clientName = companyName || email.split('@')[1]?.split('.')[0] || 'My Company';
+      // Generate a unique client name from email domain if not provided
+      const baseName = companyName || email.split('@')[1]?.split('.')[0] || 'My Company';
+      const clientName = `${baseName} ${Date.now()}`; // Add timestamp to ensure uniqueness
       
       // Don't use generic email domains as unique client domains
       const emailDomain = email.split('@')[1];
@@ -247,7 +248,8 @@ export const AuthProvider = ({ children }) => {
 
           // User exists but no client - create one
           console.log('User exists but no client found, creating new client...');
-          const clientName = companyName || email.split('@')[1]?.split('.')[0] || 'My Company';
+          const baseName = companyName || email.split('@')[1]?.split('.')[0] || 'My Company';
+          const clientName = `${baseName} ${Date.now()}`; // Add timestamp to ensure uniqueness
           
           // Don't use generic email domains as unique client domains
           const emailDomain = email.split('@')[1];
