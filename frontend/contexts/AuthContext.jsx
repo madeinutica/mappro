@@ -159,14 +159,18 @@ export const AuthProvider = ({ children }) => {
 
       // Generate a client name from email domain if not provided
       const clientName = companyName || email.split('@')[1]?.split('.')[0] || 'My Company';
-      const clientDomain = domain || email.split('@')[1] || `${clientName.toLowerCase()}.com`;
+      
+      // Don't use generic email domains as unique client domains
+      const emailDomain = email.split('@')[1];
+      const genericDomains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'aol.com', 'icloud.com', 'me.com', 'mac.com'];
+      const clientDomain = (!genericDomains.includes(emailDomain) && domain) ? domain : null;
 
       // Create new client in Supabase
       const { data: newClient, error: clientError } = await supabase
         .from('clients')
         .insert({
           name: clientName,
-          domain: clientDomain,
+          domain: clientDomain, // Only set domain if it's not a generic email domain
           firebase_uid: userCredential.user.uid
         })
         .select()
@@ -244,13 +248,17 @@ export const AuthProvider = ({ children }) => {
           // User exists but no client - create one
           console.log('User exists but no client found, creating new client...');
           const clientName = companyName || email.split('@')[1]?.split('.')[0] || 'My Company';
-          const clientDomain = domain || email.split('@')[1] || `${clientName.toLowerCase()}.com`;
+          
+          // Don't use generic email domains as unique client domains
+          const emailDomain = email.split('@')[1];
+          const genericDomains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'aol.com', 'icloud.com', 'me.com', 'mac.com'];
+          const clientDomain = (!genericDomains.includes(emailDomain) && domain) ? domain : null;
 
           const { data: newClient, error: clientError } = await supabase
             .from('clients')
             .insert({
               name: clientName,
-              domain: clientDomain,
+              domain: clientDomain, // Only set domain if it's not a generic email domain
               firebase_uid: signInResult.user.uid
             })
             .select()
