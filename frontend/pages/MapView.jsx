@@ -606,6 +606,11 @@ const MapView = ({ user, embedMode = false, embedParams = {}, clientId }) => {
         </div>
       )}
 
+      {/* Logo - Bottom Left */}
+      <div className="absolute bottom-4 left-4 z-10">
+        <img src="/assets/logos/mappro-logo.png" alt="MapPro" className="max-w-[130px] h-auto" />
+      </div>
+
       {/* Image Modal - only show in non-embed mode */}
       {!embedMode && imageModal.isOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 font-lato" onClick={() => setImageModal({ isOpen: false, src: '', alt: '' })}>

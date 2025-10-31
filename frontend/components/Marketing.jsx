@@ -9,7 +9,7 @@ const Marketing = ({ onLogin, onDemo, onSignup }) => {
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <img src="/assets/logos/mappro-logo.png" alt="MapPro" className="h-10 w-auto" />
+                <img src="/assets/logos/mappro-logo.png" alt="MapPro" className="max-w-[200px] h-auto" />
               </div>
             </div>
             <div className="flex items-center space-x-4">
@@ -248,7 +248,9 @@ const Marketing = ({ onLogin, onDemo, onSignup }) => {
       <footer className="bg-gray-900 text-white py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <h3 className="text-2xl font-bold mb-4">Map Pro</h3>
+            <div className="mb-4">
+              <img src="/assets/logos/mappro-logo.png" alt="MapPro" className="max-w-[130px] h-auto mx-auto brightness-0 invert" />
+            </div>
             <p className="text-gray-400">Making interactive maps simple and beautiful.</p>
           </div>
         </div>

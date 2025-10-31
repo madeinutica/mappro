@@ -82,7 +82,7 @@ const App = () => {
           <div className="min-h-screen bg-gray-100">
             <div className="p-4 flex justify-between items-center bg-neutral-cream shadow-sm">
               <div className="flex items-center">
-                <img src="/assets/logos/mappro-logo.png" alt="MapPro" className="h-8 w-auto mr-3" />
+                <img src="/assets/logos/mappro-logo.png" alt="MapPro" className="max-w-[200px] h-auto mr-3" />
                 <div>
                   <h1 className="text-2xl font-bold text-primary-600">Map Pro - Demo</h1>
                 </div>

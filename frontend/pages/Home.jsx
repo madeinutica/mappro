@@ -110,7 +110,7 @@ const Home = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center">
-              <img src="/assets/logos/mappro-logo.png" alt="MapPro" className="h-8 w-auto" />
+              <img src="/assets/logos/mappro-logo.png" alt="MapPro" className="max-w-[200px] h-auto" />
               <span className="ml-2 text-sm text-neutral-500">Interactive Project Mapping</span>
             </div>
             <div className="flex items-center space-x-4">
