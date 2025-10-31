@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { getProjects, updateProject, deleteProject, uploadPhoto, deletePhoto, addProject, getReviews, addReview, updateReview, deleteReview } from '../utils/projectApi';
+import { getProjects, updateProject, deleteProject, uploadPhoto, deletePhoto, addProject, getReviews, addReview, updateReview, deleteReview, getClientInfo } from '../utils/projectApi';
+import { supabase } from '../utils/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
 
 const Admin = ({ onMap }) => {
@@ -10,7 +11,7 @@ const Admin = ({ onMap }) => {
   const [saving, setSaving] = useState(false);
   const [uploadingBefore, setUploadingBefore] = useState(false);
   const [uploadingAfter, setUploadingAfter] = useState(false);
-  const [view, setView] = useState('dashboard'); // 'dashboard' or 'edit' or 'embed'
+  const [view, setView] = useState('dashboard'); // 'dashboard' or 'edit' or 'embed' or 'modal-builder'
   const [showAddModal, setShowAddModal] = useState(false);
   const [filterStatus, setFilterStatus] = useState('all'); // 'all', 'published', 'unpublished'
   const [currentPage, setCurrentPage] = useState(1);
@@ -55,6 +56,20 @@ const Admin = ({ onMap }) => {
   const [visibleCategories, setVisibleCategories] = useState(1);
   const [embedMarkerColor, setEmbedMarkerColor] = useState('#2563eb');
   const [embedMarkerStyle, setEmbedMarkerStyle] = useState('circle');
+  const [modalConfig, setModalConfig] = useState({
+    cta: {
+      message: 'Thinking about a similar project?',
+      buttonText: 'Get a Free Quote',
+      buttonColor: '#2563eb',
+      buttonUrl: null
+    },
+    showReviews: true,
+    showCategories: true,
+    showSubCategories: true,
+    showProductDetails: true,
+    customFields: []
+  });
+  const [savingModalConfig, setSavingModalConfig] = useState(false);
   const handleAddInputChange = (field, value) => {
     setAddForm(prev => ({ ...prev, [field]: value }));
     // Clear error when user starts typing
@@ -485,6 +500,86 @@ const Admin = ({ onMap }) => {
     setEditingReview(null);
   };
 
+  // Load modal configuration
+  const loadModalConfig = async () => {
+    try {
+      const clientInfo = await getClientInfo();
+      if (clientInfo?.modal_config) {
+        setModalConfig(clientInfo.modal_config);
+      }
+    } catch (error) {
+      console.error('Error loading modal config:', error);
+    }
+  };
+
+  // Save modal configuration
+  const saveModalConfig = async () => {
+    setSavingModalConfig(true);
+    try {
+      // Update client with new modal config
+      const { data, error } = await supabase
+        .from('clients')
+        .update({ modal_config: modalConfig })
+        .eq('id', clientId);
+
+      if (error) throw error;
+      alert('Modal configuration saved successfully!');
+    } catch (error) {
+      console.error('Error saving modal config:', error);
+      alert('Error saving modal configuration: ' + error.message);
+    } finally {
+      setSavingModalConfig(false);
+    }
+  };
+
+  // Update modal config
+  const updateModalConfig = (key, value) => {
+    setModalConfig(prev => ({
+      ...prev,
+      [key]: value
+    }));
+  };
+
+  // Update CTA config
+  const updateCTAConfig = (key, value) => {
+    setModalConfig(prev => ({
+      ...prev,
+      cta: {
+        ...prev.cta,
+        [key]: value
+      }
+    }));
+  };
+
+  // Add custom field
+  const addCustomField = () => {
+    setModalConfig(prev => ({
+      ...prev,
+      customFields: [
+        ...prev.customFields,
+        { type: 'text', label: '', value: '' }
+      ]
+    }));
+  };
+
+  // Update custom field
+  const updateCustomField = (index, field, value) => {
+    setModalConfig(prev => ({
+      ...prev,
+      customFields: prev.customFields.map((item, i) =>
+        i === index ? { ...item, [field]: value } : item
+      )
+    }));
+  };
+
+  // Remove custom field
+  const removeCustomField = (index) => {
+    setModalConfig(prev => ({
+      ...prev,
+      customFields: prev.customFields.filter((_, i) => i !== index)
+    }));
+  };
+
   // Calculate dashboard stats
   const totalProjects = projects.length;
   const publishedProjects = projects.filter(p => p.is_published).length;
@@ -855,6 +950,19 @@ const Admin = ({ onMap }) => {
                 📤 Embed Code
               </button>
               <button
+                onClick={() => {
+                  setView('modal-builder');
+                  loadModalConfig();
+                }}
+                className={`w-full text-left px-4 py-2 rounded-lg font-medium transition-colors ${
+                  view === 'modal-builder'
+                    ? 'bg-green-100 text-green-700'
+                    : 'hover:bg-green-50 text-gray-700'
+                }`}
+              >
+                🎨 Modal Builder
+              </button>
+              <button
                 onClick={signOut}
                 className="w-full text-left px-4 py-2 rounded-lg font-medium transition-colors hover:bg-red-50 text-gray-700"
               >
@@ -1063,6 +1171,272 @@ const Admin = ({ onMap }) => {
                         <li>• <code>markerColor=HEX_COLOR</code>: Set marker color (e.g., #2563eb)</li>
                         <li>• <code>markerStyle=STYLE</code>: Set marker style (circle, square, triangle, diamond)</li>
                       </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : view === 'modal-builder' ? (
+              <div className="bg-neutral-cream rounded-xl shadow p-8">
+                <div className="flex justify-between items-center mb-6">
+                  <div className="flex items-center space-x-4">
+                    <button
+                      onClick={handleBackToDashboard}
+                      className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                    >
+                      ← Back to Dashboard
+                    </button>
+                    <h2 className="text-2xl font-bold text-green-700">Modal Builder</h2>
+                  </div>
+                  <button
+                    onClick={saveModalConfig}
+                    disabled={savingModalConfig}
+                    className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {savingModalConfig ? 'Saving...' : 'Save Configuration'}
+                  </button>
+                </div>
+
+                <div className="space-y-8">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4">Call-to-Action (CTA)</h3>
+                    <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">CTA Message</label>
+                        <input
+                          type="text"
+                          value={modalConfig.cta.message}
+                          onChange={(e) => updateCTAConfig('message', e.target.value)}
+                          placeholder="Thinking about a similar project?"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Button Text</label>
+                        <input
+                          type="text"
+                          value={modalConfig.cta.buttonText}
+                          onChange={(e) => updateCTAConfig('buttonText', e.target.value)}
+                          placeholder="Get a Free Quote"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Button Color</label>
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="color"
+                            value={modalConfig.cta.buttonColor}
+                            onChange={(e) => updateCTAConfig('buttonColor', e.target.value)}
+                            className="w-12 h-10 border border-gray-300 rounded cursor-pointer"
+                          />
+                          <input
+                            type="text"
+                            value={modalConfig.cta.buttonColor}
+                            onChange={(e) => updateCTAConfig('buttonColor', e.target.value)}
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 font-mono text-sm"
+                            placeholder="#2563eb"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Button URL (Optional)</label>
+                        <input
+                          type="url"
+                          value={modalConfig.cta.buttonUrl || ''}
+                          onChange={(e) => updateCTAConfig('buttonUrl', e.target.value)}
+                          placeholder="https://example.com/quote"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4">Content Visibility</h3>
+                    <div className="bg-white border border-gray-200 rounded-lg p-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-3">
+                          <div className="flex items-center">
+                            <input
+                              type="checkbox"
+                              id="showReviews"
+                              checked={modalConfig.showReviews}
+                              onChange={(e) => updateModalConfig('showReviews', e.target.checked)}
+                              className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                            />
+                            <label htmlFor="showReviews" className="ml-2 block text-sm text-gray-900">
+                              Show Reviews
+                            </label>
+                          </div>
+                          <div className="flex items-center">
+                            <input
+                              type="checkbox"
+                              id="showCategories"
+                              checked={modalConfig.showCategories}
+                              onChange={(e) => updateModalConfig('showCategories', e.target.checked)}
+                              className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                            />
+                            <label htmlFor="showCategories" className="ml-2 block text-sm text-gray-900">
+                              Show Categories
+                            </label>
+                          </div>
+                        </div>
+                        <div className="space-y-3">
+                          <div className="flex items-center">
+                            <input
+                              type="checkbox"
+                              id="showSubCategories"
+                              checked={modalConfig.showSubCategories}
+                              onChange={(e) => updateModalConfig('showSubCategories', e.target.checked)}
+                              className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                            />
+                            <label htmlFor="showSubCategories" className="ml-2 block text-sm text-gray-900">
+                              Show Sub-Categories
+                            </label>
+                          </div>
+                          <div className="flex items-center">
+                            <input
+                              type="checkbox"
+                              id="showProductDetails"
+                              checked={modalConfig.showProductDetails}
+                              onChange={(e) => updateModalConfig('showProductDetails', e.target.checked)}
+                              className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                            />
+                            <label htmlFor="showProductDetails" className="ml-2 block text-sm text-gray-900">
+                              Show Product Details
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-semibold text-gray-800">Custom Fields</h3>
+                      <button
+                        onClick={addCustomField}
+                        className="px-3 py-1 text-sm bg-green-100 text-green-700 rounded hover:bg-green-200 flex items-center gap-1"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                        Add Field
+                      </button>
+                    </div>
+                    <div className="bg-white border border-gray-200 rounded-lg p-6">
+                      {modalConfig.customFields.length === 0 ? (
+                        <p className="text-gray-500 text-center py-4">No custom fields added yet.</p>
+                      ) : (
+                        <div className="space-y-4">
+                          {modalConfig.customFields.map((field, index) => (
+                            <div key={index} className="border border-gray-200 rounded-lg p-4">
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                                  <select
+                                    value={field.type}
+                                    onChange={(e) => updateCustomField(index, 'type', e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                                  >
+                                    <option value="text">Text</option>
+                                    <option value="number">Number</option>
+                                    <option value="url">URL</option>
+                                  </select>
+                                </div>
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700 mb-1">Label</label>
+                                  <input
+                                    type="text"
+                                    value={field.label}
+                                    onChange={(e) => updateCustomField(index, 'label', e.target.value)}
+                                    placeholder="Field label"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700 mb-1">Value</label>
+                                  <input
+                                    type={field.type}
+                                    value={field.value}
+                                    onChange={(e) => updateCustomField(index, 'value', e.target.value)}
+                                    placeholder="Field value"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                                  />
+                                </div>
+                              </div>
+                              <div className="flex justify-end mt-3">
+                                <button
+                                  onClick={() => removeCustomField(index)}
+                                  className="px-3 py-1 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200"
+                                >
+                                  Remove
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4">Live Preview</h3>
+                    <div className="bg-white border border-gray-200 rounded-lg p-6">
+                      <div className="max-w-xs bg-neutral-cream p-2 rounded-lg shadow-lg">
+                        <h3 className="font-semibold text-lg text-gray-900 mb-1 leading-tight">Sample Project</h3>
+                        
+                        <div className="text-sm text-gray-600 mb-2">Sample City, NY</div>
+                        
+                        {modalConfig.showReviews && (
+                          <div className="mb-2">
+                            <div className="flex items-center mb-1">
+                              {[...Array(5)].map((_, starIndex) => (
+                                <svg key={starIndex} className="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                </svg>
+                              ))}
+                            </div>
+                            <p className="text-gray-700 italic mb-1">"Great work!"</p>
+                          </div>
+                        )}
+                        
+                        {modalConfig.showCategories && (
+                          <div className="mb-1 flex flex-wrap gap-1">
+                            <span className="bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded">Doors & Windows</span>
+                          </div>
+                        )}
+                        
+                        {modalConfig.showSubCategories && (
+                          <div className="mb-2 flex flex-wrap gap-1">
+                            <span className="bg-green-50 text-green-700 text-xs px-2 py-0.5 rounded">Windows</span>
+                          </div>
+                        )}
+                        
+                        {modalConfig.showProductDetails && (
+                          <div className="mb-2">
+                            <div className="text-xs font-medium text-gray-700 mb-1">Product Details</div>
+                            <div className="text-sm text-gray-600">Sample product description</div>
+                          </div>
+                        )}
+
+                        {modalConfig.customFields.map((field, index) => (
+                          <div key={index} className="mb-2">
+                            <div className="text-xs font-medium text-gray-700 mb-1">{field.label}</div>
+                            <div className="text-sm text-gray-600">{field.value}</div>
+                          </div>
+                        ))}
+                        
+                        <div className="mt-3 pt-2 border-t border-gray-200">
+                          <p className="text-xs text-gray-600 mb-2">{modalConfig.cta.message}</p>
+                          <button 
+                            className="w-full py-2 px-3 text-white text-sm font-medium rounded transition-colors"
+                            style={{ backgroundColor: modalConfig.cta.buttonColor }}
+                          >
+                            {modalConfig.cta.buttonText}
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>

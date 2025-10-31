@@ -16,6 +16,7 @@ const MapView = ({ user, embedMode = false, embedParams = {}, clientId }) => {
   const markersRef = useRef([]);
   const [projects, setProjects] = useState([]);
   const [clientInfo, setClientInfo] = useState(null);
+  const [modalConfig, setModalConfig] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [imageModal, setImageModal] = useState({ isOpen: false, src: '', alt: '' });
@@ -124,6 +125,7 @@ const MapView = ({ user, embedMode = false, embedParams = {}, clientId }) => {
           try {
             const clientData = await getClientInfo();
             setClientInfo(clientData);
+            setModalConfig(clientData?.modal_config || null);
           } catch (clientErr) {
             console.warn('Failed to fetch client info:', clientErr);
             // Don't set error for client info failure, it's not critical
@@ -356,7 +358,7 @@ const MapView = ({ user, embedMode = false, embedParams = {}, clientId }) => {
           subCategoryInfo
         };
 
-        const popupContent = renderToString(<ProjectPopup project={enhancedProject} />);
+        const popupContent = renderToString(<ProjectPopup project={enhancedProject} modalConfig={modalConfig} />);
 
         const marker = new mapboxgl.Marker({ element: el })
           .setLngLat([lng, lat])
