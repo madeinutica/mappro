@@ -13,6 +13,9 @@ const ProjectPopup = ({ project, modalConfig }) => {
     showCategories: true,
     showSubCategories: true,
     showProductDetails: true,
+    showCustomFields: true,
+    showLocation: true,
+    showCTA: true,
     customFields: []
   };
 
@@ -21,7 +24,7 @@ const ProjectPopup = ({ project, modalConfig }) => {
       <h3 className="font-semibold text-lg text-gray-900 mb-1 leading-tight">{project.name || 'Unnamed Project'}</h3>
       
       {/* City and Zip */}
-      {(project.city || project.zip) && (
+      {config.showLocation && (project.city || project.zip) && (
         <div className="text-sm text-gray-600 mb-2">
           {[project.city, project.zip].filter(Boolean).join(', ')}
         </div>
@@ -96,7 +99,7 @@ const ProjectPopup = ({ project, modalConfig }) => {
       )}
 
       {/* Custom Fields */}
-      {config.customFields && config.customFields.map((field, index) => (
+      {config.showCustomFields && config.customFields && config.customFields.map((field, index) => (
         <div key={index} className="mb-2">
           <div className="text-xs font-medium text-gray-700 mb-1">{field.label}</div>
           <div className="text-sm text-gray-600">{field.value}</div>
@@ -104,20 +107,22 @@ const ProjectPopup = ({ project, modalConfig }) => {
       ))}
       
       {/* Soft CTA */}
-      <div className="mt-3 pt-2 border-t border-gray-200">
-        <p className="text-xs text-gray-600 mb-2">{config.cta.message}</p>
-        <button 
-          className="w-full py-2 px-3 text-white text-sm font-medium rounded transition-colors hover:opacity-90"
-          style={{ backgroundColor: config.cta.buttonColor }}
-          onClick={() => {
-            if (config.cta.buttonUrl) {
-              window.open(config.cta.buttonUrl, '_blank');
-            }
-          }}
-        >
-          {config.cta.buttonText}
-        </button>
-      </div>
+      {config.showCTA && (
+        <div className="mt-3 pt-2 border-t border-gray-200">
+          <p className="text-xs text-gray-600 mb-2">{config.cta.message}</p>
+          <button 
+            className="w-full py-2 px-3 text-white text-sm font-medium rounded transition-colors hover:opacity-90"
+            style={{ backgroundColor: config.cta.buttonColor }}
+            onClick={() => {
+              if (config.cta.buttonUrl) {
+                window.open(config.cta.buttonUrl, '_blank');
+              }
+            }}
+          >
+            {config.cta.buttonText}
+          </button>
+        </div>
+      )}
       
       {/* Add photo display here in the future */}
     </div>

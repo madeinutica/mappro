@@ -67,6 +67,9 @@ const Admin = ({ onMap }) => {
     showCategories: true,
     showSubCategories: true,
     showProductDetails: true,
+    showCustomFields: true,
+    showLocation: true,
+    showCTA: true,
     customFields: []
   });
   const [savingModalConfig, setSavingModalConfig] = useState(false);
@@ -1198,60 +1201,6 @@ const Admin = ({ onMap }) => {
 
                 <div className="space-y-8">
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-800 mb-4">Call-to-Action (CTA)</h3>
-                    <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">CTA Message</label>
-                        <input
-                          type="text"
-                          value={modalConfig.cta.message}
-                          onChange={(e) => updateCTAConfig('message', e.target.value)}
-                          placeholder="Thinking about a similar project?"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Button Text</label>
-                        <input
-                          type="text"
-                          value={modalConfig.cta.buttonText}
-                          onChange={(e) => updateCTAConfig('buttonText', e.target.value)}
-                          placeholder="Get a Free Quote"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Button Color</label>
-                        <div className="flex items-center gap-3">
-                          <input
-                            type="color"
-                            value={modalConfig.cta.buttonColor}
-                            onChange={(e) => updateCTAConfig('buttonColor', e.target.value)}
-                            className="w-12 h-10 border border-gray-300 rounded cursor-pointer"
-                          />
-                          <input
-                            type="text"
-                            value={modalConfig.cta.buttonColor}
-                            onChange={(e) => updateCTAConfig('buttonColor', e.target.value)}
-                            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 font-mono text-sm"
-                            placeholder="#2563eb"
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Button URL (Optional)</label>
-                        <input
-                          type="url"
-                          value={modalConfig.cta.buttonUrl || ''}
-                          onChange={(e) => updateCTAConfig('buttonUrl', e.target.value)}
-                          placeholder="https://example.com/quote"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
                     <h3 className="text-lg font-semibold text-gray-800 mb-4">Content Visibility</h3>
                     <div className="bg-white border border-gray-200 rounded-lg p-6">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1280,8 +1229,6 @@ const Admin = ({ onMap }) => {
                               Show Categories
                             </label>
                           </div>
-                        </div>
-                        <div className="space-y-3">
                           <div className="flex items-center">
                             <input
                               type="checkbox"
@@ -1304,6 +1251,44 @@ const Admin = ({ onMap }) => {
                             />
                             <label htmlFor="showProductDetails" className="ml-2 block text-sm text-gray-900">
                               Show Product Details
+                            </label>
+                          </div>
+                        </div>
+                        <div className="space-y-3">
+                          <div className="flex items-center">
+                            <input
+                              type="checkbox"
+                              id="showCustomFields"
+                              checked={modalConfig.showCustomFields !== false}
+                              onChange={(e) => updateModalConfig('showCustomFields', e.target.checked)}
+                              className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                            />
+                            <label htmlFor="showCustomFields" className="ml-2 block text-sm text-gray-900">
+                              Show Custom Fields
+                            </label>
+                          </div>
+                          <div className="flex items-center">
+                            <input
+                              type="checkbox"
+                              id="showLocation"
+                              checked={modalConfig.showLocation !== false}
+                              onChange={(e) => updateModalConfig('showLocation', e.target.checked)}
+                              className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                            />
+                            <label htmlFor="showLocation" className="ml-2 block text-sm text-gray-900">
+                              Show Location (City, State, ZIP)
+                            </label>
+                          </div>
+                          <div className="flex items-center">
+                            <input
+                              type="checkbox"
+                              id="showCTA"
+                              checked={modalConfig.showCTA !== false}
+                              onChange={(e) => updateModalConfig('showCTA', e.target.checked)}
+                              className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                            />
+                            <label htmlFor="showCTA" className="ml-2 block text-sm text-gray-900">
+                              Show Call-to-Action Button
                             </label>
                           </div>
                         </div>
@@ -1381,12 +1366,68 @@ const Admin = ({ onMap }) => {
                   </div>
 
                   <div>
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4">Call-to-Action (CTA)</h3>
+                    <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">CTA Message</label>
+                        <input
+                          type="text"
+                          value={modalConfig.cta.message}
+                          onChange={(e) => updateCTAConfig('message', e.target.value)}
+                          placeholder="Thinking about a similar project?"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Button Text</label>
+                        <input
+                          type="text"
+                          value={modalConfig.cta.buttonText}
+                          onChange={(e) => updateCTAConfig('buttonText', e.target.value)}
+                          placeholder="Get a Free Quote"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Button Color</label>
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="color"
+                            value={modalConfig.cta.buttonColor}
+                            onChange={(e) => updateCTAConfig('buttonColor', e.target.value)}
+                            className="w-12 h-10 border border-gray-300 rounded cursor-pointer"
+                          />
+                          <input
+                            type="text"
+                            value={modalConfig.cta.buttonColor}
+                            onChange={(e) => updateCTAConfig('buttonColor', e.target.value)}
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 font-mono text-sm"
+                            placeholder="#2563eb"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Button URL (Optional)</label>
+                        <input
+                          type="url"
+                          value={modalConfig.cta.buttonUrl || ''}
+                          onChange={(e) => updateCTAConfig('buttonUrl', e.target.value)}
+                          placeholder="https://example.com/quote"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
                     <h3 className="text-lg font-semibold text-gray-800 mb-4">Live Preview</h3>
                     <div className="bg-white border border-gray-200 rounded-lg p-6">
                       <div className="max-w-xs bg-neutral-cream p-2 rounded-lg shadow-lg">
                         <h3 className="font-semibold text-lg text-gray-900 mb-1 leading-tight">Sample Project</h3>
                         
-                        <div className="text-sm text-gray-600 mb-2">Sample City, NY</div>
+                        {modalConfig.showLocation && (
+                          <div className="text-sm text-gray-600 mb-2">Sample City, NY</div>
+                        )}
                         
                         {modalConfig.showReviews && (
                           <div className="mb-2">
@@ -1420,22 +1461,24 @@ const Admin = ({ onMap }) => {
                           </div>
                         )}
 
-                        {modalConfig.customFields.map((field, index) => (
+                        {modalConfig.showCustomFields && modalConfig.customFields.map((field, index) => (
                           <div key={index} className="mb-2">
                             <div className="text-xs font-medium text-gray-700 mb-1">{field.label}</div>
                             <div className="text-sm text-gray-600">{field.value}</div>
                           </div>
                         ))}
                         
-                        <div className="mt-3 pt-2 border-t border-gray-200">
-                          <p className="text-xs text-gray-600 mb-2">{modalConfig.cta.message}</p>
-                          <button 
-                            className="w-full py-2 px-3 text-white text-sm font-medium rounded transition-colors"
-                            style={{ backgroundColor: modalConfig.cta.buttonColor }}
-                          >
-                            {modalConfig.cta.buttonText}
-                          </button>
-                        </div>
+                        {modalConfig.showCTA && (
+                          <div className="mt-3 pt-2 border-t border-gray-200">
+                            <p className="text-xs text-gray-600 mb-2">{modalConfig.cta.message}</p>
+                            <button 
+                              className="w-full py-2 px-3 text-white text-sm font-medium rounded transition-colors"
+                              style={{ backgroundColor: modalConfig.cta.buttonColor }}
+                            >
+                              {modalConfig.cta.buttonText}
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
