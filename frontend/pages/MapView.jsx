@@ -64,27 +64,57 @@ const MapView = ({ user, embedMode = false, embedParams = {}, clientId }) => {
           filteredProjects = filteredProjects.filter(p => p.is_published);
         }
         
-        // Extract unique categories from all projects
-        const categorySet = new Set();
-        filteredProjects.forEach(project => {
-          // Check all category fields (Category 1 through Category 7)
+        // Generate filters based on client
+        let filters = [];
+        const clientIdentifier = embedParams.clientId || clientId;
+        
+        // Check if this client has the typical New York Sash categories
+        const hasNYSashCategories = filteredProjects.some(project => {
           for (let i = 1; i <= 7; i++) {
             const category = project[`Category ${i}`];
-            if (category && category.trim() && category !== 'null') {
-              categorySet.add(category.trim().toLowerCase());
+            if (category) {
+              const catLower = category.toLowerCase();
+              if (catLower.includes('doors') || catLower.includes('windows') || 
+                  catLower.includes('bathrooms') || catLower.includes('baths') || 
+                  catLower.includes('siding')) {
+                return true;
+              }
             }
           }
+          return false;
         });
         
-        // Convert to sorted array and create filter objects
-        const uniqueCategories = Array.from(categorySet).sort();
-        const filters = [
-          { key: 'all', label: 'All' },
-          ...uniqueCategories.map(category => ({
-            key: category,
-            label: category.charAt(0).toUpperCase() + category.slice(1) // Capitalize first letter
-          }))
-        ];
+        if (hasNYSashCategories) {
+          // Hardcoded filters for New York Sash style clients
+          filters = [
+            { key: 'all', label: 'All' },
+            { key: 'doors-windows', label: 'Doors & Windows' },
+            { key: 'bathrooms', label: 'Bathrooms' },
+            { key: 'siding', label: 'Siding' }
+          ];
+        } else {
+          // Dynamic filters for other clients
+          const categorySet = new Set();
+          filteredProjects.forEach(project => {
+            // Check all category fields (Category 1 through Category 7)
+            for (let i = 1; i <= 7; i++) {
+              const category = project[`Category ${i}`];
+              if (category && category.trim() && category !== 'null') {
+                categorySet.add(category.trim().toLowerCase());
+              }
+            }
+          });
+          
+          // Convert to sorted array and create filter objects
+          const uniqueCategories = Array.from(categorySet).sort();
+          filters = [
+            { key: 'all', label: 'All' },
+            ...uniqueCategories.map(category => ({
+              key: category,
+              label: category.charAt(0).toUpperCase() + category.slice(1) // Capitalize first letter
+            }))
+          ];
+        }
         
         setDynamicFilters(filters);
         setProjects(filteredProjects);
@@ -119,8 +149,17 @@ const MapView = ({ user, embedMode = false, embedParams = {}, clientId }) => {
         // Check if any category field contains the selected category (case-insensitive)
         for (let i = 1; i <= 7; i++) {
           const category = project[`Category ${i}`];
-          if (category && category.toLowerCase().includes(selectedCategory)) {
-            return true;
+          if (category) {
+            const categoryLower = category.toLowerCase();
+            
+            // Special handling for bathrooms to also match "baths"
+            if (selectedCategory === 'bathrooms') {
+              if (categoryLower.includes('bathrooms') || categoryLower.includes('baths')) {
+                return true;
+              }
+            } else if (categoryLower.includes(selectedCategory)) {
+              return true;
+            }
           }
         }
         return false;
