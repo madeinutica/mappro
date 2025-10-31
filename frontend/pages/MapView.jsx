@@ -574,6 +574,20 @@ const MapView = ({ user, embedMode = false, embedParams = {}, clientId }) => {
 
   return (
     <div className={`w-full ${embedMode ? 'h-full' : 'h-[600px] relative'} font-inter`}>
+      {/* Hide Mapbox logo */}
+      <style dangerouslySetInnerHTML={{
+        __html: `
+          .mapboxgl-ctrl-attrib,
+          .mapboxgl-ctrl-attrib a,
+          .mapboxgl-ctrl-attrib button,
+          .mapboxgl-ctrl-logo {
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+          }
+        `
+      }} />
+      
       {!embedMode && loading && (
         <div className="absolute inset-0 flex items-center justify-center bg-neutral-cream z-10 font-lato">
           <div className="text-lg text-primary-700">Loading map...</div>
@@ -608,7 +622,9 @@ const MapView = ({ user, embedMode = false, embedParams = {}, clientId }) => {
 
       {/* Logo - Bottom Left */}
       <div className="absolute bottom-4 left-4 z-10">
-        <img src="/assets/logos/mappro-logo.png" alt="MapPro" className="max-w-[130px] h-auto" />
+        <a href="/" target="_blank" rel="noopener noreferrer">
+          <img src="/assets/logos/mappro-logo.png" alt="MapPro" className="max-w-[130px] h-auto cursor-pointer hover:opacity-80 transition-opacity" />
+        </a>
       </div>
 
       {/* Image Modal - only show in non-embed mode */}
