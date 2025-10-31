@@ -79,6 +79,14 @@ const ProjectPopup = ({ project }) => (
       </div>
     )}
     
+    {/* Soft CTA */}
+    <div className="mt-3 pt-2 border-t border-gray-200">
+      <p className="text-xs text-gray-600 mb-2">Thinking about a similar project?</p>
+      <button className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-3 rounded transition-colors">
+        Get a Free Quote
+      </button>
+    </div>
+    
     {/* Add photo display here in the future */}
   </div>
 );

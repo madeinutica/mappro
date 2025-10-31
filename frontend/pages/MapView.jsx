@@ -22,6 +22,7 @@ const MapView = ({ user, embedMode = false, embedParams = {}, clientId }) => {
   const [mapInitialized, setMapInitialized] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [filteredProjects, setFilteredProjects] = useState([]);
+  const [dynamicFilters, setDynamicFilters] = useState([]);
   const previousProjectsRef = useRef(null);
   const dataFetchedRef = useRef(false);
   const lastUserRef = useRef(null);
@@ -63,6 +64,29 @@ const MapView = ({ user, embedMode = false, embedParams = {}, clientId }) => {
           filteredProjects = filteredProjects.filter(p => p.is_published);
         }
         
+        // Extract unique categories from all projects
+        const categorySet = new Set();
+        filteredProjects.forEach(project => {
+          // Check all category fields (Category 1 through Category 7)
+          for (let i = 1; i <= 7; i++) {
+            const category = project[`Category ${i}`];
+            if (category && category.trim() && category !== 'null') {
+              categorySet.add(category.trim().toLowerCase());
+            }
+          }
+        });
+        
+        // Convert to sorted array and create filter objects
+        const uniqueCategories = Array.from(categorySet).sort();
+        const filters = [
+          { key: 'all', label: 'All' },
+          ...uniqueCategories.map(category => ({
+            key: category,
+            label: category.charAt(0).toUpperCase() + category.slice(1) // Capitalize first letter
+          }))
+        ];
+        
+        setDynamicFilters(filters);
         setProjects(filteredProjects);
         dataFetchedRef.current = true;
 
@@ -92,26 +116,14 @@ const MapView = ({ user, embedMode = false, embedParams = {}, clientId }) => {
       setFilteredProjects(projects);
     } else {
       const filtered = projects.filter(project => {
-        const categories = [];
-        // Check all category fields
+        // Check if any category field contains the selected category (case-insensitive)
         for (let i = 1; i <= 7; i++) {
-          const categoryValue = project[`Category ${i}`];
-          if (categoryValue && categoryValue !== 'null' && categoryValue !== '') {
-            categories.push(categoryValue.toLowerCase());
+          const category = project[`Category ${i}`];
+          if (category && category.toLowerCase().includes(selectedCategory)) {
+            return true;
           }
         }
-        
-        // Handle combined doors & windows category
-        if (selectedCategory === 'doors-windows') {
-          return categories.some(cat => cat.includes('doors') || cat.includes('windows'));
-        }
-        
-        // Handle bathrooms category (also includes baths)
-        if (selectedCategory === 'bathrooms') {
-          return categories.some(cat => cat.includes('bathrooms') || cat.includes('baths'));
-        }
-        
-        return categories.some(cat => cat.includes(selectedCategory.toLowerCase()));
+        return false;
       });
       setFilteredProjects(filtered);
     }
@@ -414,50 +426,20 @@ const MapView = ({ user, embedMode = false, embedParams = {}, clientId }) => {
 
       {/* Category Filter Buttons - Bottom Right */}
       <div className="absolute bottom-4 right-4 flex flex-col gap-2 z-10">
-        <button
-          onClick={() => setSelectedCategory('all')}
-          className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-            selectedCategory === 'all'
-              ? 'text-white shadow-md'
-              : 'bg-white text-gray-700 hover:bg-gray-50 shadow-md'
-          }`}
-          style={selectedCategory === 'all' ? { backgroundColor: markerColor } : {}}
-        >
-          All
-        </button>
-        <button
-          onClick={() => setSelectedCategory('doors-windows')}
-          className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-            selectedCategory === 'doors-windows'
-              ? 'text-white shadow-md'
-              : 'bg-white text-gray-700 hover:bg-gray-50 shadow-md'
-          }`}
-          style={selectedCategory === 'doors-windows' ? { backgroundColor: markerColor } : {}}
-        >
-          Doors & Windows
-        </button>
-        <button
-          onClick={() => setSelectedCategory('bathrooms')}
-          className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-            selectedCategory === 'bathrooms'
-              ? 'text-white shadow-md'
-              : 'bg-white text-gray-700 hover:bg-gray-50 shadow-md'
-          }`}
-          style={selectedCategory === 'bathrooms' ? { backgroundColor: markerColor } : {}}
-        >
-          Bathrooms
-        </button>
-        <button
-          onClick={() => setSelectedCategory('siding')}
-          className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-            selectedCategory === 'siding'
-              ? 'text-white shadow-md'
-              : 'bg-white text-gray-700 hover:bg-gray-50 shadow-md'
-          }`}
-          style={selectedCategory === 'siding' ? { backgroundColor: markerColor } : {}}
-        >
-          Siding
-        </button>
+        {dynamicFilters.map(filter => (
+          <button
+            key={filter.key}
+            onClick={() => setSelectedCategory(filter.key)}
+            className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+              selectedCategory === filter.key
+                ? 'text-white shadow-md'
+                : 'bg-white text-gray-700 hover:bg-gray-50 shadow-md'
+            }`}
+            style={selectedCategory === filter.key ? { backgroundColor: markerColor } : {}}
+          >
+            {filter.label}
+          </button>
+        ))}
       </div>
 
       {/* Image Modal - only show in non-embed mode */}
