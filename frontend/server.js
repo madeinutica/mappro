@@ -26,6 +26,9 @@ const server = http.createServer((req, res) => {
         try {
           const { clientId, planId, billingInterval = 'monthly' } = JSON.parse(body);
 
+          // Get the origin from request headers to create proper redirect URLs
+          const origin = req.headers.origin || `http://${req.headers.host}`;
+          
           // For demo purposes, create a simple checkout session
           const session = await stripe.checkout.sessions.create({
             payment_method_types: ['card'],
@@ -34,8 +37,8 @@ const server = http.createServer((req, res) => {
               quantity: 1,
             }],
             mode: 'subscription',
-            success_url: `http://localhost:3010/admin?success=true&session_id={CHECKOUT_SESSION_ID}`,
-            cancel_url: `http://localhost:3010/admin?canceled=true`,
+            success_url: `${origin}/admin?success=true&session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url: `${origin}/admin?canceled=true`,
             metadata: {
               client_id: clientId,
               plan_id: planId
