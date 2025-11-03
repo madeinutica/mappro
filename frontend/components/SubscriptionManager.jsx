@@ -103,11 +103,12 @@ const SubscriptionManager = () => {
 
     setProcessing(true);
     try {
-      // Create checkout session using local server endpoint
-      const response = await fetch('http://localhost:3008/api/create-checkout', {
+      // Create checkout session using Supabase Edge Function
+      const response = await fetch(`${process.env.REACT_APP_SUPABASE_URL}/functions/v1/create-checkout`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
         },
         body: JSON.stringify({
           clientId: clientId,
