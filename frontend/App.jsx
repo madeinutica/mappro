@@ -26,9 +26,27 @@ const App = () => {
     const urlParams = new URLSearchParams(window.location.search);
     const embed = urlParams.get('embed');
     const client = urlParams.get('client');
+    const success = urlParams.get('success');
+    const canceled = urlParams.get('canceled');
+    
+    // If success or canceled from Stripe, go to admin
+    if (success || canceled) {
+      return 'admin';
+    }
+    
     return (embed === 'true' && client) ? 'embed' : 'marketing';
   });
   const [embedParams, setEmbedParams] = useState(getInitialEmbedParams);
+  const [paymentStatus, setPaymentStatus] = useState(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const success = urlParams.get('success');
+    const canceled = urlParams.get('canceled');
+    const sessionId = urlParams.get('session_id');
+    
+    if (success) return { type: 'success', sessionId };
+    if (canceled) return { type: 'canceled' };
+    return null;
+  });
   const { user, client, loading } = useAuth();
 
   useEffect(() => {
@@ -130,7 +148,7 @@ const App = () => {
                 </button>
               </div>
             </div>
-            <Admin onMap={handleMap} />
+            <Admin onMap={handleMap} paymentStatus={paymentStatus} />
           </div>
         );
       case 'map':

@@ -2,8 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { getProjects, updateProject, deleteProject, uploadPhoto, deletePhoto, addProject, getReviews, addReview, updateReview, deleteReview, getClientInfo } from '../utils/projectApi';
 import { supabase } from '../utils/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
+import SubscriptionManager from '../components/SubscriptionManager';
+import { canPerformAction, checkFeatureAccess, FEATURES, getUpgradePrompt } from '../utils/featureGating';
 
-const Admin = ({ onMap }) => {
+const Admin = ({ onMap, paymentStatus }) => {
   const [projects, setProjects] = useState([]);
   const [selected, setSelected] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -68,6 +70,7 @@ const Admin = ({ onMap }) => {
     showCustomFields: true,
     showLocation: true,
     showCTA: true,
+    showBeforeAfterPhotos: true,
     customFields: []
   });
   const [savingModalConfig, setSavingModalConfig] = useState(false);
@@ -149,6 +152,15 @@ const Admin = ({ onMap }) => {
 
   const handleAddProject = async (e) => {
     e.preventDefault();
+    
+    // Check project limit before proceeding
+    const canAddProject = canPerformAction(FEATURES.MAX_PROJECTS, projects.length, client);
+    if (!canAddProject) {
+      const prompt = getUpgradePrompt(FEATURES.MAX_PROJECTS);
+      alert(`${prompt.message}\n\n${prompt.cta}`);
+      setView('subscription');
+      return;
+    }
     
     // Validate form
     const errors = validateAddForm();
@@ -238,6 +250,19 @@ const Admin = ({ onMap }) => {
   const clientId = client?.clients?.id || client?.id;
 
   console.log('Admin component render - client:', client, 'clientId:', clientId);
+
+  // Handle payment status notifications
+  useEffect(() => {
+    if (paymentStatus) {
+      if (paymentStatus === 'success') {
+        alert('🎉 Payment successful! Your subscription has been upgraded to Pro.');
+        // Optionally refresh client data to reflect new subscription status
+        window.location.reload();
+      } else if (paymentStatus === 'cancel') {
+        alert('Payment was cancelled. You can try again anytime from the Subscription tab.');
+      }
+    }
+  }, [paymentStatus]);
 
   useEffect(() => {
     console.log('useEffect triggered with clientId:', clientId);
@@ -652,6 +677,10 @@ const Admin = ({ onMap }) => {
     !newest || new Date(project.created_at || 0) > new Date(newest.created_at || 0) ? project : newest
   ) : null;
 
+  // Check subscription limits
+  const canAddMoreProjects = canPerformAction(FEATURES.MAX_PROJECTS, totalProjects, client);
+  const maxProjects = checkFeatureAccess(FEATURES.MAX_PROJECTS, client);
+
   const renderDashboard = () => (
     <div className="space-y-8">
       {/* Add Project Modal */}
@@ -946,15 +975,43 @@ const Admin = ({ onMap }) => {
       <div className="bg-neutral-cream rounded-xl shadow p-6">
         <h2 className="text-xl font-bold text-gray-900 mb-4">Quick Actions</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <button
-            className="p-4 border-2 border-dashed border-blue-500 rounded-lg hover:bg-blue-50 transition-colors text-blue-700 font-semibold flex flex-col items-center justify-center"
-            onClick={() => setShowAddModal(true)}
-          >
-            <svg className="w-8 h-8 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
-            Add New Project
-          </button>
+          <div className="relative">
+            <button
+              className={`p-4 border-2 border-dashed rounded-lg hover:bg-blue-50 transition-colors text-blue-700 font-semibold flex flex-col items-center justify-center w-full ${
+                canAddMoreProjects 
+                  ? 'border-blue-500 hover:bg-blue-50' 
+                  : 'border-red-300 bg-red-50 cursor-not-allowed'
+              }`}
+              onClick={() => {
+                if (canAddMoreProjects) {
+                  setShowAddModal(true);
+                } else {
+                  const prompt = getUpgradePrompt(FEATURES.MAX_PROJECTS);
+                  alert(`${prompt.message}\n\n${prompt.cta}`);
+                  setView('subscription');
+                }
+              }}
+            >
+              <svg className="w-8 h-8 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              Add New Project
+            </button>
+            {/* Project Limit Indicator */}
+            <div className="mt-2 text-center">
+              <div className="text-xs text-gray-600">
+                {maxProjects === -1 ? 'Unlimited' : `${totalProjects}/${maxProjects} projects`}
+              </div>
+              {!canAddMoreProjects && (
+                <button
+                  onClick={() => setView('subscription')}
+                  className="text-xs text-blue-600 hover:text-blue-800 underline mt-1"
+                >
+                  Upgrade to add more
+                </button>
+              )}
+            </div>
+          </div>
           <button className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-green-500 hover:bg-green-50 transition-colors">
             <div className="text-center">
               <svg className="w-8 h-8 text-gray-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1026,18 +1083,30 @@ const Admin = ({ onMap }) => {
               >
                 🎨 Modal Builder
               </button>
+              {checkFeatureAccess(FEATURES.ADVANCED_CUSTOMIZATION, client?.clients) && (
+                <button
+                  onClick={() => {
+                    setView('map-builder');
+                    loadMapConfig();
+                  }}
+                  className={`w-full text-left px-4 py-2 rounded-lg font-medium transition-colors ${
+                    view === 'map-builder'
+                      ? 'bg-orange-100 text-orange-700'
+                      : 'hover:bg-orange-50 text-gray-700'
+                  }`}
+                >
+                  🗺️ Map Builder
+                </button>
+              )}
               <button
-                onClick={() => {
-                  setView('map-builder');
-                  loadMapConfig();
-                }}
+                onClick={() => setView('subscription')}
                 className={`w-full text-left px-4 py-2 rounded-lg font-medium transition-colors ${
-                  view === 'map-builder'
-                    ? 'bg-orange-100 text-orange-700'
-                    : 'hover:bg-orange-50 text-gray-700'
+                  view === 'subscription'
+                    ? 'bg-indigo-100 text-indigo-700'
+                    : 'hover:bg-indigo-50 text-gray-700'
                 }`}
               >
-                🗺️ Map Builder
+                � Subscription
               </button>
               <button
                 onClick={signOut}
@@ -1168,6 +1237,22 @@ const Admin = ({ onMap }) => {
                   </div>
                 </div>
               </div>
+            ) : view === 'subscription' ? (
+              <div className="bg-neutral-cream rounded-xl shadow p-8">
+                <div className="flex justify-between items-center mb-6">
+                  <div className="flex items-center space-x-4">
+                    <button
+                      onClick={handleBackToDashboard}
+                      className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                    >
+                      ← Back to Dashboard
+                    </button>
+                    <h2 className="text-2xl font-bold text-indigo-700">Subscription Management</h2>
+                  </div>
+                </div>
+
+                <SubscriptionManager />
+              </div>
             ) : view === 'modal-builder' ? (
               <div className="bg-neutral-cream rounded-xl shadow p-8">
                 <div className="flex justify-between items-center mb-6">
@@ -1267,6 +1352,18 @@ const Admin = ({ onMap }) => {
                             />
                             <label htmlFor="showLocation" className="ml-2 block text-sm text-gray-900">
                               Show Location (City, State, ZIP)
+                            </label>
+                          </div>
+                          <div className="flex items-center">
+                            <input
+                              type="checkbox"
+                              id="showBeforeAfterPhotos"
+                              checked={modalConfig.showBeforeAfterPhotos !== false}
+                              onChange={(e) => updateModalConfig('showBeforeAfterPhotos', e.target.checked)}
+                              className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                            />
+                            <label htmlFor="showBeforeAfterPhotos" className="ml-2 block text-sm text-gray-900">
+                              Show Before/After Photos
                             </label>
                           </div>
                           <div className="flex items-center">

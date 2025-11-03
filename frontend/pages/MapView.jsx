@@ -627,19 +627,32 @@ const MapView = ({ user, embedMode = false, embedParams = {}, clientId }) => {
         </a>
       </div>
 
-      {/* Image Modal - only show in non-embed mode */}
-      {!embedMode && imageModal.isOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 font-lato" onClick={() => setImageModal({ isOpen: false, src: '', alt: '' })}>
-          <div className="relative max-w-4xl max-h-screen p-4" onClick={(e) => e.stopPropagation()}>
+      {/* Image Modal */}
+      {imageModal.isOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 font-lato" 
+          onClick={() => {
+            console.log('Modal background clicked, closing modal');
+            setImageModal({ isOpen: false, src: '', alt: '' });
+          }}
+          style={{ zIndex: 9999 }}
+        >
+          <div className="relative max-w-4xl max-h-screen p-4 bg-white rounded-lg" onClick={(e) => e.stopPropagation()}>
+            <div className="text-center mb-4">
+              <h3 className="text-lg font-semibold">{imageModal.alt}</h3>
+            </div>
             <img
               src={imageModal.src}
               alt={imageModal.alt}
-              className="max-w-full max-h-full object-contain"
+              className="max-w-full max-h-96 object-contain mx-auto block"
               onClick={(e) => e.stopPropagation()}
             />
             <button
               className="absolute top-2 right-2 bg-black bg-opacity-50 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-opacity-75"
-              onClick={() => setImageModal({ isOpen: false, src: '', alt: '' })}
+              onClick={() => {
+                console.log('Close button clicked, closing modal');
+                setImageModal({ isOpen: false, src: '', alt: '' });
+              }}
             >
               ×
             </button>

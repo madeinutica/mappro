@@ -3,12 +3,63 @@ const fs = require('fs');
 const path = require('path');
 const url = require('url');
 
+// Load environment variables
+require('dotenv').config({ path: path.join(__dirname, '.env') });
+
+// Add Stripe for checkout
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+
 const server = http.createServer((req, res) => {
   try {
     const parsedUrl = url.parse(req.url, true);
     let pathname = parsedUrl.pathname;
 
     console.log(`Request: ${req.method} ${pathname}`);
+
+    // Handle checkout endpoint
+    if (pathname === '/api/create-checkout' && req.method === 'POST') {
+      let body = '';
+      req.on('data', chunk => {
+        body += chunk.toString();
+      });
+      req.on('end', async () => {
+        try {
+          const { clientId, planId, billingInterval = 'monthly' } = JSON.parse(body);
+
+          // For demo purposes, create a simple checkout session
+          const session = await stripe.checkout.sessions.create({
+            payment_method_types: ['card'],
+            line_items: [{
+              price: billingInterval === 'yearly' ? 'price_1SOObWJ17KVc8UXY0ODncfph' : 'price_1SOObWJ17KVc8UXY0ODncfph', // Use the same price for demo
+              quantity: 1,
+            }],
+            mode: 'subscription',
+            success_url: `http://localhost:3010/admin?success=true&session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url: `http://localhost:3010/admin?canceled=true`,
+            metadata: {
+              client_id: clientId,
+              plan_id: planId
+            }
+          });
+
+          res.writeHead(200, {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type'
+          });
+          res.end(JSON.stringify({ url: session.url }));
+        } catch (error) {
+          console.error('Checkout error:', error);
+          res.writeHead(500, {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+          });
+          res.end(JSON.stringify({ error: error.message }));
+        }
+      });
+      return;
+    }
 
     // Handle preflight OPTIONS requests
     if (req.method === 'OPTIONS') {

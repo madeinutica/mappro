@@ -23,6 +23,9 @@ export const AuthProvider = ({ children }) => {
   const [client, setClient] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Development mode bypass for testing
+  const DEV_MODE = process.env.NODE_ENV === 'development' && window.location.search.includes('dev=true');
+
   // Fetch user-client association from Supabase
   const fetchUserClient = async (firebaseUid) => {
     try {
@@ -35,7 +38,7 @@ export const AuthProvider = ({ children }) => {
       // First, try to find client association in database
       const { data, error } = await supabase
         .from('clients')
-        .select('id, name, domain, logo_url, primary_color')
+        .select('id, name, domain, logo_url, primary_color, subscription_status, subscription_plan, subscription_id, subscription_expires_at, stripe_customer_id')
         .eq('firebase_uid', firebaseUid)
         .single();
 
@@ -57,7 +60,12 @@ export const AuthProvider = ({ children }) => {
             name: 'New York Sash',
             domain: 'newyorksash.com',
             logo_url: null,
-            primary_color: '#3B82F6'
+            primary_color: '#3B82F6',
+            subscription_status: 'active',
+            subscription_plan: 'pro',
+            subscription_id: 'demo-subscription-123',
+            subscription_expires_at: null,
+            stripe_customer_id: 'demo-customer-123'
           }
         };
       }
@@ -86,6 +94,36 @@ export const AuthProvider = ({ children }) => {
   };
 
   useEffect(() => {
+    // Development mode bypass
+    if (DEV_MODE) {
+      console.log('AuthContext: Development mode enabled - bypassing Firebase auth');
+      setUser({
+        uid: 'dev-user-123',
+        email: 'dev@example.com',
+        displayName: 'Development User'
+      });
+      
+      // Set up demo client for New York Sash
+      setClient({
+        role: 'admin',
+        clients: {
+          id: '550e8400-e29b-41d4-a716-446655440000',
+          name: 'New York Sash',
+          domain: 'newyorksash.com',
+          logo_url: null,
+          primary_color: '#3B82F6',
+          subscription_status: 'active',
+          subscription_plan: 'pro',
+          subscription_id: 'dev-subscription-123',
+          subscription_expires_at: null,
+          stripe_customer_id: 'dev-customer-123'
+        }
+      });
+      
+      setLoading(false);
+      return;
+    }
+
     // Listen for Firebase auth state changes
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       console.log('AuthContext: Firebase auth state change:', firebaseUser?.email || 'signed out', 'UID:', firebaseUser?.uid);
@@ -130,6 +168,9 @@ export const AuthProvider = ({ children }) => {
 
   const signIn = async (email, password) => {
     try {
+      // Add a small delay to prevent rapid retries
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       console.log('Firebase sign in successful:', userCredential.user.email);
 
@@ -147,6 +188,17 @@ export const AuthProvider = ({ children }) => {
       };
     } catch (error) {
       console.error('Firebase sign in error:', error);
+      
+      // Handle rate limiting specifically
+      if (error.code === 'auth/too-many-requests') {
+        return {
+          data: null,
+          error: {
+            message: 'Too many sign-in attempts. Please wait a few minutes before trying again, or try signing in from a different device/browser.'
+          }
+        };
+      }
+      
       return { data: null, error };
     }
   };
@@ -303,6 +355,13 @@ export const AuthProvider = ({ children }) => {
   };
 
   const signOut = async () => {
+    if (DEV_MODE) {
+      console.log('AuthContext: Development mode sign out');
+      setUser(null);
+      setClient(null);
+      return { error: null };
+    }
+
     try {
       await firebaseSignOut(auth);
       console.log('Firebase sign out successful');

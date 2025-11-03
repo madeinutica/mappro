@@ -106,6 +106,37 @@ const ProjectPopup = ({ project, modalConfig }) => {
         </div>
       ))}
       
+      {/* Before/After Photos */}
+      {config.showBeforeAfterPhotos && (project.before_photo || project.after_photo || true) && (
+        <div className="mb-2">
+          <div className="text-xs font-medium text-gray-700 mb-2">Project Photos</div>
+          <div className="flex gap-2">
+            {(project.before_photo || "https://via.placeholder.com/200x150/4f46e5/white?text=Before") && (
+              <div className="flex-1">
+                <div className="text-xs text-gray-500 mb-1">Before</div>
+                <img
+                  src={project.before_photo || "https://via.placeholder.com/200x150/4f46e5/white?text=Before"}
+                  alt="Before photo"
+                  className="w-full h-20 object-cover rounded cursor-pointer hover:opacity-80 transition-opacity"
+                  onClick={"console.log('Before photo clicked:', '" + (project.before_photo || "https://via.placeholder.com/200x150/4f46e5/white?text=Before") + "'); window.openImageModal && window.openImageModal('" + (project.before_photo || "https://via.placeholder.com/200x150/4f46e5/white?text=Before") + "', 'Before photo')"}
+                />
+              </div>
+            )}
+            {(project.after_photo || "https://via.placeholder.com/200x150/10b981/white?text=After") && (
+              <div className="flex-1">
+                <div className="text-xs text-gray-500 mb-1">After</div>
+                <img
+                  src={project.after_photo || "https://via.placeholder.com/200x150/10b981/white?text=After"}
+                  alt="After photo"
+                  className="w-full h-20 object-cover rounded cursor-pointer hover:opacity-80 transition-opacity"
+                  onClick={"console.log('After photo clicked:', '" + (project.after_photo || "https://via.placeholder.com/200x150/10b981/white?text=After") + "'); window.openImageModal && window.openImageModal('" + (project.after_photo || "https://via.placeholder.com/200x150/10b981/white?text=After") + "', 'After photo')"}
+                />
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      
       {/* Soft CTA */}
       {config.showCTA && (
         <div className="mt-3 pt-2 border-t border-gray-200">
@@ -123,8 +154,6 @@ const ProjectPopup = ({ project, modalConfig }) => {
           </button>
         </div>
       )}
-      
-      {/* Add photo display here in the future */}
     </div>
   );
 };

@@ -50,6 +50,7 @@ module.exports = {
   },
   plugins: [
     new webpack.DefinePlugin({
+      'process.env': JSON.stringify({}),
       SUPABASE_URL: JSON.stringify(process.env.REACT_APP_SUPABASE_URL || 'https://fvrueabzpinhlzyrnhne.supabase.co'),
       SUPABASE_ANON_KEY: JSON.stringify(process.env.REACT_APP_SUPABASE_ANON_KEY || ''),
       REACT_APP_FIREBASE_API_KEY: JSON.stringify(process.env.REACT_APP_FIREBASE_API_KEY || ''),
@@ -58,6 +59,7 @@ module.exports = {
       REACT_APP_FIREBASE_STORAGE_BUCKET: JSON.stringify(process.env.REACT_APP_FIREBASE_STORAGE_BUCKET || ''),
       REACT_APP_FIREBASE_MESSAGING_SENDER_ID: JSON.stringify(process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID || ''),
       REACT_APP_FIREBASE_APP_ID: JSON.stringify(process.env.REACT_APP_FIREBASE_APP_ID || ''),
+      REACT_APP_STRIPE_PUBLISHABLE_KEY: JSON.stringify(process.env.STRIPE_PUBLISHABLE_KEY || 'pk_test_placeholder'),
     }),
     new CopyPlugin({
       patterns: [
@@ -72,12 +74,21 @@ module.exports = {
     },
     compress: true,
     port: 3010,
-    host: '127.0.0.1', // Use 127.0.0.1 instead of localhost for better Chrome compatibility
+    host: '127.0.0.1',
     hot: true,
+    liveReload: true,
     client: {
-      overlay: false, // Disable error overlay to reduce console noise
+      overlay: false,
+      webSocketURL: 'auto://0.0.0.0:0/ws',
     },
-    server: 'http', // Explicitly set to http to avoid WebSocket issues
-    allowedHosts: ['localhost', '127.0.0.1'], // Allow both localhost and 127.0.0.1
+    webSocketServer: 'ws',
+    allowedHosts: ['localhost', '127.0.0.1'],
+    open: false,
+    headers: {
+      'Content-Security-Policy': "default-src * 'unsafe-inline' 'unsafe-eval'; script-src * 'unsafe-inline' 'unsafe-eval'; style-src * 'unsafe-inline'; img-src * data: blob:; connect-src * ws: wss:; font-src *; frame-src *;",
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+    }
   },
 };

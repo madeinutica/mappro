@@ -46,16 +46,10 @@ const Auth = () => {
     setError('');
 
     try {
-      // Use demo credentials for Firebase
-      const result = await signIn('demo@mappro.com', 'password123');
-      if (result.error) {
-        setError('Demo login failed. Please try regular login.');
-      } else {
-        navigate('/map');
-      }
+      // Use development mode bypass instead of Firebase auth
+      window.location.href = '/?dev=true';
     } catch (err) {
-      setError('Demo login failed. Please try regular login.');
-    } finally {
+      setError('Demo mode failed. Please try regular login.');
       setLoading(false);
       setDemoMode(false);
     }
@@ -170,7 +164,18 @@ const Auth = () => {
             </button>
           </form>
 
-          {/* Toggle between login/signup removed as requested */}
+          {/* Create Account Link */}
+          <div className="mt-6 text-center">
+            <p className="text-sm text-neutral-600">
+              Don't have an account?{' '}
+              <button
+                onClick={() => navigate('/')}
+                className="text-primary-600 hover:text-primary-500 font-medium"
+              >
+                Create Account
+              </button>
+            </p>
+          </div>
         </div>
 
         {/* Footer */}

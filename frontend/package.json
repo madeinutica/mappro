@@ -3,11 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@stripe/stripe-js": "^8.2.0",
     "@supabase/supabase-js": "^2.76.1",
     "firebase": "^12.4.0",
     "mapbox-gl": "^2.15.0",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
+    "stripe": "^19.2.0",
     "webpack": "^5.102.1",
     "webpack-cli": "^5.1.4"
   },
