@@ -4,11 +4,13 @@ import { supabase } from '../utils/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
 import { getProjects } from '../utils/projectApi';
 
-// Initialize Stripe
-const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY || 'pk_test_placeholder');
+// Initialize Stripe with your publishable key
+const stripePromise = loadStripe('pk_test_51SOOaNJ17KVc8UXYl5Qq8cJZ7rlEANJd0h8sU8xUoJX1T7X4L7hcBxKHaS1KyGz8GQbV2PzjPKxLw1kZT8dXc6Q0A00VZWaABBo');
 
-const SubscriptionManager = () => {
-  const { client } = useAuth();
+const SubscriptionManager = ({ user, client: propClient }) => {
+  const { client: authClient } = useAuth();
+  const client = propClient || authClient;
+  
   const [subscription, setSubscription] = useState(null);
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -140,18 +142,32 @@ const SubscriptionManager = () => {
           throw new Error('No checkout URL received');
         }
       } else {
-        // Production: Show upgrade message for now
-        console.log('Production mode - showing upgrade message');
+        // Production: Use Stripe Payment Links (these actually work!)
+        console.log('Production mode - redirecting to Stripe Payment Link');
         
-        alert(`🎉 Ready to upgrade to Pro!\n\nTo complete your subscription:\n\n1. Contact support at support@mappro.com\n2. Or visit your account settings\n3. We'll set up your Pro account manually\n\nClient ID: ${clientId}\nPlan: ${planId} (${billingInterval})`);
+        const currentDomain = window.location.origin;
         
-        // For now, we'll manually upgrade users until Stripe is properly configured
-        // You can update the database manually or through Supabase dashboard
+        // Use Stripe Payment Links - these are pre-configured checkout pages
+        // You can create these in your Stripe Dashboard under "Payment Links"
+        let paymentUrl;
+        
+        if (billingInterval === 'yearly') {
+          // Yearly Pro subscription - $99/year
+          paymentUrl = `https://buy.stripe.com/test_bIY29kbn53Xy73ifGH?prefilled_email=${encodeURIComponent(user?.email || '')}&client_reference_id=${clientId}`;
+        } else {
+          // Monthly Pro subscription - $9.99/month  
+          paymentUrl = `https://buy.stripe.com/test_4gwbLU8Bo4Zn9kgcPO?prefilled_email=${encodeURIComponent(user?.email || '')}&client_reference_id=${clientId}`;
+        }
+        
+        console.log('Redirecting to payment URL:', paymentUrl);
+        
+        // Redirect to Stripe Payment Link
+        window.location.href = paymentUrl;
       }
 
     } catch (error) {
       console.error('Error creating subscription:', error);
-      alert(`Failed to start subscription: ${error.message}\n\nPlease contact support at support@mappro.com with your client ID: ${clientId}`);
+      alert(`Failed to start subscription: ${error.message}\n\nPlease try refreshing the page or contact support if the issue persists.`);
     } finally {
       setProcessing(false);
     }
