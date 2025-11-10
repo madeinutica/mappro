@@ -39,8 +39,8 @@ const server = http.createServer((req, res) => {
               quantity: 1,
             }],
             mode: 'subscription',
-            success_url: `${origin}/admin?success=true&session_id={CHECKOUT_SESSION_ID}`,
-            cancel_url: `${origin}/admin?canceled=true`,
+            success_url: `http://localhost:3010/?success=true&session_id={CHECKOUT_SESSION_ID}&client_id=${clientId}&plan_id=${planId}`,
+            cancel_url: `http://localhost:3010/?canceled=true`,
             metadata: {
               client_id: clientId,
               plan_id: planId
@@ -84,12 +84,12 @@ const server = http.createServer((req, res) => {
     }
 
     // Check if file exists
-    const filePath = path.join(__dirname, 'dist', pathname);
+    const filePath = path.join(__dirname, 'build', pathname);
 
     fs.access(filePath, fs.constants.F_OK, (err) => {
       if (err) {
         // File doesn't exist, serve index.html for SPA routing
-        const indexPath = path.join(__dirname, 'dist', 'index.html');
+        const indexPath = path.join(__dirname, 'build', 'index.html');
         fs.readFile(indexPath, (err, data) => {
           if (err) {
             console.error('Error loading index.html:', err);

@@ -103,29 +103,61 @@ const SubscriptionManager = () => {
 
     setProcessing(true);
     try {
-      // Create checkout session using Supabase Edge Function
-      const response = await fetch(`${process.env.REACT_APP_SUPABASE_URL}/functions/v1/create-checkout`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
-        },
-        body: JSON.stringify({
-          clientId: clientId,
-          planId,
-          billingInterval
-        })
-      });
+      // Determine if we're in development or production
+      const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      
+      let checkoutUrl;
+      
+      if (isDevelopment) {
+        // Use local server for development
+        const response = await fetch('http://localhost:3008/api/create-checkout', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            clientId,
+            planId,
+            billingInterval
+          })
+        });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create checkout session');
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        checkoutUrl = data.url;
+      } else {
+        // Use Supabase Edge Function for production
+        const supabaseUrl = process.env.REACT_APP_SUPABASE_URL || 'https://fvrueabzpinhlzyrnhne.supabase.co';
+        const response = await fetch(`${supabaseUrl}/functions/v1/create-checkout-session`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`
+          },
+          body: JSON.stringify({
+            clientId,
+            planId,
+            billingInterval
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        checkoutUrl = data.url;
       }
 
-      const { url } = await response.json();
-
-      // Redirect to Stripe checkout
-      window.location.href = url;
+      if (checkoutUrl) {
+        // Redirect to Stripe Checkout
+        window.location.href = checkoutUrl;
+      } else {
+        throw new Error('No checkout URL received');
+      }
 
     } catch (error) {
       console.error('Error creating subscription:', error);

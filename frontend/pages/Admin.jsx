@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import SubscriptionManager from '../components/SubscriptionManager';
 import { canPerformAction, checkFeatureAccess, FEATURES, getUpgradePrompt } from '../utils/featureGating';
 
-const Admin = ({ onMap, paymentStatus }) => {
+const Admin = ({ onMap, paymentStatus, onClearPaymentStatus }) => {
   const [projects, setProjects] = useState([]);
   const [selected, setSelected] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -18,6 +18,7 @@ const Admin = ({ onMap, paymentStatus }) => {
   const [filterStatus, setFilterStatus] = useState('all'); // 'all', 'published', 'unpublished'
   const [currentPage, setCurrentPage] = useState(1);
   const [projectsPerPage] = useState(10);
+  const [paymentNotification, setPaymentNotification] = useState(null);
   const [addForm, setAddForm] = useState({
     name: '',
     description: '',
@@ -253,16 +254,81 @@ const Admin = ({ onMap, paymentStatus }) => {
 
   // Handle payment status notifications
   useEffect(() => {
-    if (paymentStatus) {
-      if (paymentStatus === 'success') {
-        alert('🎉 Payment successful! Your subscription has been upgraded to Pro.');
-        // Optionally refresh client data to reflect new subscription status
-        window.location.reload();
-      } else if (paymentStatus === 'cancel') {
-        alert('Payment was cancelled. You can try again anytime from the Subscription tab.');
+    console.log('Payment status in Admin:', paymentStatus);
+    if (paymentStatus && !paymentNotification) {
+      if (paymentStatus.type === 'success') {
+        setPaymentNotification({ type: 'success', message: '🎉 Payment successful! Updating your subscription...' });
+        
+        // Extract client ID and plan ID from URL params or client data
+        const urlParams = new URLSearchParams(window.location.search);
+        const clientIdFromUrl = urlParams.get('client_id');
+        const planIdFromUrl = urlParams.get('plan_id');
+        const sessionId = paymentStatus.sessionId;
+        
+        const clientIdToUse = clientIdFromUrl || client?.clients?.id || client?.id;
+        const planIdToUse = planIdFromUrl || 'pro';
+        
+        if (clientIdToUse) {
+          console.log('Updating subscription in database for client:', clientIdToUse);
+          
+          // Update subscription directly using Supabase client
+          supabase
+            .from('clients')
+            .update({
+              subscription_status: 'active',
+              subscription_plan: planIdToUse,
+              subscription_id: sessionId || `test-sub-${Date.now()}`
+            })
+            .eq('id', clientIdToUse)
+            .select()
+            .then(({ data, error }) => {
+              if (error) {
+                console.error('Database update error:', error);
+                setPaymentNotification({ 
+                  type: 'error', 
+                  message: 'Payment successful but failed to update subscription. Please contact support.' 
+                });
+              } else {
+                console.log('Subscription updated successfully:', data);
+                setPaymentNotification({ 
+                  type: 'success', 
+                  message: '🎉 Payment successful! Your subscription has been upgraded to Pro.' 
+                });
+                
+                // Clear the payment status to prevent re-triggering
+                if (onClearPaymentStatus) {
+                  onClearPaymentStatus();
+                }
+                
+                // Refresh client data to reflect new subscription status
+                setTimeout(() => {
+                  window.location.reload();
+                }, 2000);
+              }
+            })
+            .catch(error => {
+              console.error('Error updating subscription:', error);
+              setPaymentNotification({ 
+                type: 'error', 
+                message: 'Payment successful but failed to update subscription. Please contact support.' 
+              });
+            });
+        } else {
+          console.error('No client ID found for subscription update');
+          setPaymentNotification({ 
+            type: 'error', 
+            message: 'Payment successful but missing client information. Please contact support.' 
+          });
+        }
+      } else if (paymentStatus.type === 'canceled') {
+        setPaymentNotification({ type: 'canceled', message: 'Payment was cancelled. You can try again anytime from the Subscription tab.' });
+        // Clear the payment status to prevent re-triggering
+        if (onClearPaymentStatus) {
+          onClearPaymentStatus();
+        }
       }
     }
-  }, [paymentStatus]);
+  }, [paymentStatus, paymentNotification, onClearPaymentStatus, client]);
 
   useEffect(() => {
     console.log('useEffect triggered with clientId:', clientId);
@@ -1037,6 +1103,26 @@ const Admin = ({ onMap, paymentStatus }) => {
 
   return (
     <div className="admin-page bg-gray-100 min-h-screen">
+      {/* Payment Status Notification */}
+      {paymentNotification && (
+        <div className="fixed top-4 right-4 z-50 max-w-md">
+          <div className={`p-4 rounded-lg shadow-lg ${
+            paymentNotification.type === 'success' ? 'bg-green-100 border border-green-400 text-green-700' :
+            'bg-yellow-100 border border-yellow-400 text-yellow-700'
+          }`}>
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">{paymentNotification.message}</span>
+              <button 
+                onClick={() => setPaymentNotification(null)}
+                className="ml-4 text-lg font-bold hover:opacity-70"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
       <div className="container mx-auto py-8">
         <div className="flex gap-8">
           <aside className="w-64 bg-neutral-cream rounded-xl shadow p-6 sticky top-8 h-fit self-start">

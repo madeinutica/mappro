@@ -49,12 +49,31 @@ const App = () => {
   });
   const { user, client, loading } = useAuth();
 
+  // Function to clear payment status
+  const clearPaymentStatus = () => {
+    setPaymentStatus(null);
+  };
+
   useEffect(() => {
     // Auto-redirect to admin if user is authenticated and associated with client
     if (user && client && currentView === 'auth') {
       setCurrentView('admin');
     }
   }, [user, client, currentView]);
+
+  // Clean up URL parameters after payment redirect
+  useEffect(() => {
+    if (paymentStatus && currentView === 'admin') {
+      // Clean up the URL parameters after a short delay to allow the Admin component to process them
+      setTimeout(() => {
+        const url = new URL(window.location);
+        url.searchParams.delete('success');
+        url.searchParams.delete('canceled');
+        url.searchParams.delete('session_id');
+        window.history.replaceState({}, document.title, url.toString());
+      }, 2000); // 2 second delay to ensure payment status is processed
+    }
+  }, [paymentStatus, currentView]);
 
   const handleDemo = () => {
     setCurrentView('demo');
@@ -148,7 +167,7 @@ const App = () => {
                 </button>
               </div>
             </div>
-            <Admin onMap={handleMap} paymentStatus={paymentStatus} />
+            <Admin onMap={handleMap} paymentStatus={paymentStatus} onClearPaymentStatus={clearPaymentStatus} />
           </div>
         );
       case 'map':
