@@ -140,23 +140,18 @@ const SubscriptionManager = () => {
           throw new Error('No checkout URL received');
         }
       } else {
-        // Production: Use direct Stripe Payment Link for immediate functionality
-        console.log('Production mode - using direct Stripe payment link');
+        // Production: Show upgrade message for now
+        console.log('Production mode - showing upgrade message');
         
-        // For immediate fix, let's redirect to a working test payment link
-        // This will at least allow users to complete payments while we fix the backend
-        const currentDomain = window.location.origin;
+        alert(`🎉 Ready to upgrade to Pro!\n\nTo complete your subscription:\n\n1. Contact support at support@mappro.com\n2. Or visit your account settings\n3. We'll set up your Pro account manually\n\nClient ID: ${clientId}\nPlan: ${planId} (${billingInterval})`);
         
-        // Using Stripe test payment link (replace with your actual payment link)
-        const paymentLink = `https://buy.stripe.com/test_7sI9AUdVm7nF1QA7ss?client_reference_id=${clientId}&success_url=${encodeURIComponent(currentDomain + '/?success=true&client_id=' + clientId + '&plan_id=' + planId)}&cancel_url=${encodeURIComponent(currentDomain + '/?canceled=true')}`;
-        
-        console.log('Redirecting to payment link:', paymentLink);
-        window.location.href = paymentLink;
+        // For now, we'll manually upgrade users until Stripe is properly configured
+        // You can update the database manually or through Supabase dashboard
       }
 
     } catch (error) {
       console.error('Error creating subscription:', error);
-      alert(`Failed to start subscription: ${error.message}\n\nPlease try refreshing the page or contact support if the issue persists.`);
+      alert(`Failed to start subscription: ${error.message}\n\nPlease contact support at support@mappro.com with your client ID: ${clientId}`);
     } finally {
       setProcessing(false);
     }
