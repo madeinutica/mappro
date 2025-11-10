@@ -1083,7 +1083,7 @@ const Admin = ({ onMap, paymentStatus }) => {
               >
                 🎨 Modal Builder
               </button>
-              {checkFeatureAccess(FEATURES.ADVANCED_CUSTOMIZATION, client?.clients) && (
+              {checkFeatureAccess(FEATURES.ADVANCED_CUSTOMIZATION, client) && (
                 <button
                   onClick={() => {
                     setView('map-builder');

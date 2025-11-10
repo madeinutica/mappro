@@ -36,14 +36,21 @@ export const AuthProvider = ({ children }) => {
       console.log('AuthContext: Checking Firebase UID:', firebaseUid);
 
       // First, try to find client association in database
+      console.log('AuthContext: Querying database for Firebase UID:', firebaseUid);
       const { data, error } = await supabase
         .from('clients')
         .select('id, name, domain, logo_url, primary_color, subscription_status, subscription_plan, subscription_id, subscription_expires_at, stripe_customer_id')
         .eq('firebase_uid', firebaseUid)
         .single();
 
+      if (error) {
+        console.log('AuthContext: Database query error:', error);
+      }
+
       if (data) {
         console.log('AuthContext: Found client association in database:', data);
+        console.log('AuthContext: Client subscription plan:', data.subscription_plan);
+        console.log('AuthContext: Client subscription status:', data.subscription_status);
         return {
           role: 'admin',
           clients: data

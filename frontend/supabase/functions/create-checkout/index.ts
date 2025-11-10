@@ -24,7 +24,7 @@ export async function handler(req) {
     console.log('Parsing request body...');
     const body = await req.json();
     console.log('Request body:', body);
-    
+
     const { clientId, planId, billingInterval = 'monthly' } = body;
 
     if (!clientId) {
@@ -37,9 +37,10 @@ export async function handler(req) {
 
     // Check environment variables
     const stripeKey = Deno.env.get('STRIPE_SECRET_KEY');
-    
+
     console.log('Environment check:', {
-      hasStripeKey: !!stripeKey
+      hasStripeKey: !!stripeKey,
+      stripeKeyLength: stripeKey?.length
     });
 
     if (!stripeKey) {
@@ -55,24 +56,11 @@ export async function handler(req) {
     console.log('Origin determined:', origin);
 
     console.log('Creating Stripe checkout session...');
-    // For demo purposes, create a simple checkout session
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      line_items: [{
-        price: billingInterval === 'yearly' ? 'price_1SOObWJ17KVc8UXY0ODncfph' : 'price_1SOObWJ17KVc8UXY0ODncfph', // Use the same price for demo
-        quantity: 1,
-      }],
-      mode: 'subscription',
-      success_url: `${origin}/admin?success=true&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${origin}/admin?canceled=true`,
-      metadata: {
-        client_id: clientId,
-        plan_id: planId
-      }
-    });
+    // For testing purposes, return a mock checkout URL
+    const mockUrl = `${origin}/admin?success=true&session_id=mock_session_${Date.now()}`;
 
-    console.log('Checkout session created:', session.id);
-    const response = { url: session.url };
+    console.log('Mock checkout URL created:', mockUrl);
+    const response = { url: mockUrl };
     console.log('Returning response:', response);
 
     return new Response(JSON.stringify(response), {

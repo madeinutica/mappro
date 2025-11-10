@@ -85,7 +85,7 @@ module.exports = {
     allowedHosts: ['localhost', '127.0.0.1'],
     open: false,
     headers: {
-      'Content-Security-Policy': "default-src * 'unsafe-inline' 'unsafe-eval'; script-src * 'unsafe-inline' 'unsafe-eval'; style-src * 'unsafe-inline'; img-src * data: blob:; connect-src * ws: wss:; font-src *; frame-src *;",
+      'Content-Security-Policy': "default-src * 'unsafe-inline' 'unsafe-eval'; script-src * 'unsafe-inline' 'unsafe-eval'; worker-src blob:; style-src * 'unsafe-inline'; img-src * data: blob:; connect-src * ws: wss:; font-src *; frame-src *;",
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization'

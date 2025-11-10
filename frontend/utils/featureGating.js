@@ -45,8 +45,10 @@ const PLAN_FEATURES = {
 export const checkFeatureAccess = (feature, client) => {
   if (!client) return false;
 
-  const plan = client.subscription_plan || SUBSCRIPTION_PLANS.FREE;
-  const isActive = client.subscription_status === 'active';
+  // Handle nested client structure from AuthContext
+  const clientData = client.clients || client;
+  const plan = clientData.subscription_plan || SUBSCRIPTION_PLANS.FREE;
+  const isActive = clientData.subscription_status === 'active';
 
   // If subscription is not active, fall back to free plan
   const effectivePlan = (plan === SUBSCRIPTION_PLANS.PRO && isActive)

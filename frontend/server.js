@@ -9,6 +9,8 @@ require('dotenv').config({ path: path.join(__dirname, '.env') });
 // Add Stripe for checkout
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
+console.log('Environment loaded, STRIPE_SECRET_KEY present:', !!process.env.STRIPE_SECRET_KEY);
+
 const server = http.createServer((req, res) => {
   try {
     const parsedUrl = url.parse(req.url, true);
@@ -156,7 +158,7 @@ const server = http.createServer((req, res) => {
 });
 
 const port = 3008;
-const host = '0.0.0.0';
+const host = '127.0.0.1';
 
 server.listen(port, host, () => {
   console.log(`Server running at http://${host}:${port}`);
