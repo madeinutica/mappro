@@ -99,13 +99,20 @@ const SubscriptionManager = () => {
 
   const handleSubscribe = async (planId, billingInterval = 'monthly') => {
     const clientId = client?.clients?.id || client?.id;
-    if (!clientId) return;
+    if (!clientId) {
+      alert('No client ID found. Please refresh the page and try again.');
+      return;
+    }
 
     setProcessing(true);
+    
     try {
       const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
       console.log('Environment check - isDevelopment:', isDevelopment);
       console.log('Current hostname:', window.location.hostname);
+      console.log('Client ID:', clientId);
+      console.log('Plan ID:', planId);
+      console.log('Billing Interval:', billingInterval);
       
       if (isDevelopment) {
         // Use local server for development
@@ -133,68 +140,23 @@ const SubscriptionManager = () => {
           throw new Error('No checkout URL received');
         }
       } else {
-        // Production - try Supabase Edge Function first, fallback to payment link
-        console.log('Production mode - attempting Supabase Edge Function');
+        // Production: Use direct Stripe Payment Link for immediate functionality
+        console.log('Production mode - using direct Stripe payment link');
         
-        try {
-          const supabaseUrl = process.env.REACT_APP_SUPABASE_URL || 'https://fvrueabzpinhlzyrnhne.supabase.co';
-          const authToken = process.env.REACT_APP_SUPABASE_ANON_KEY;
-          
-          console.log('Making request to:', `${supabaseUrl}/functions/v1/create-checkout-session`);
-          console.log('Auth token present:', !!authToken);
-          
-          const response = await fetch(`${supabaseUrl}/functions/v1/create-checkout-session`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${authToken}`
-            },
-            body: JSON.stringify({
-              clientId,
-              planId,
-              billingInterval
-            })
-          });
-
-          console.log('Response status:', response.status);
-          console.log('Response ok:', response.ok);
-
-          if (response.ok) {
-            const data = await response.json();
-            console.log('Response data:', data);
-            if (data.url) {
-              window.location.href = data.url;
-              return;
-            }
-          }
-          
-          // If Edge Function fails, fall back to payment link
-          throw new Error('Edge Function unavailable');
-          
-        } catch (edgeFunctionError) {
-          console.log('Edge Function failed, using fallback:', edgeFunctionError.message);
-          
-          // Fallback: Direct Stripe Payment Link
-          // You can create these in your Stripe Dashboard under "Payment Links"
-          const baseUrl = window.location.origin;
-          const paymentLinks = {
-            'pro-monthly': 'https://buy.stripe.com/test_7sI9AUdVm7nF1QA7ss', // Replace with your actual payment link
-            'pro-yearly': 'https://buy.stripe.com/test_7sI9AUdVm7nF1QA7ss'   // Replace with your actual payment link
-          };
-          
-          const linkKey = `${planId}-${billingInterval}`;
-          const paymentLink = paymentLinks[linkKey] || paymentLinks['pro-monthly'];
-          
-          // Add client info to the payment link
-          const fullPaymentLink = `${paymentLink}?client_reference_id=${clientId}`;
-          
-          window.location.href = fullPaymentLink;
-        }
+        // For immediate fix, let's redirect to a working test payment link
+        // This will at least allow users to complete payments while we fix the backend
+        const currentDomain = window.location.origin;
+        
+        // Using Stripe test payment link (replace with your actual payment link)
+        const paymentLink = `https://buy.stripe.com/test_7sI9AUdVm7nF1QA7ss?client_reference_id=${clientId}&success_url=${encodeURIComponent(currentDomain + '/?success=true&client_id=' + clientId + '&plan_id=' + planId)}&cancel_url=${encodeURIComponent(currentDomain + '/?canceled=true')}`;
+        
+        console.log('Redirecting to payment link:', paymentLink);
+        window.location.href = paymentLink;
       }
 
     } catch (error) {
       console.error('Error creating subscription:', error);
-      alert(`Failed to start subscription: ${error.message}`);
+      alert(`Failed to start subscription: ${error.message}\n\nPlease try refreshing the page or contact support if the issue persists.`);
     } finally {
       setProcessing(false);
     }
