@@ -103,13 +103,13 @@ const SubscriptionManager = () => {
 
     setProcessing(true);
     try {
-      // Determine if we're in development or production
       const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-      
-      let checkoutUrl;
+      console.log('Environment check - isDevelopment:', isDevelopment);
+      console.log('Current hostname:', window.location.hostname);
       
       if (isDevelopment) {
         // Use local server for development
+        console.log('Using local server for checkout');
         const response = await fetch('http://localhost:3008/api/create-checkout', {
           method: 'POST',
           headers: {
@@ -127,36 +127,69 @@ const SubscriptionManager = () => {
         }
 
         const data = await response.json();
-        checkoutUrl = data.url;
-      } else {
-        // Use Supabase Edge Function for production
-        const supabaseUrl = process.env.REACT_APP_SUPABASE_URL || 'https://fvrueabzpinhlzyrnhne.supabase.co';
-        const response = await fetch(`${supabaseUrl}/functions/v1/create-checkout-session`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`
-          },
-          body: JSON.stringify({
-            clientId,
-            planId,
-            billingInterval
-          })
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+        if (data.url) {
+          window.location.href = data.url;
+        } else {
+          throw new Error('No checkout URL received');
         }
-
-        const data = await response.json();
-        checkoutUrl = data.url;
-      }
-
-      if (checkoutUrl) {
-        // Redirect to Stripe Checkout
-        window.location.href = checkoutUrl;
       } else {
-        throw new Error('No checkout URL received');
+        // Production - try Supabase Edge Function first, fallback to payment link
+        console.log('Production mode - attempting Supabase Edge Function');
+        
+        try {
+          const supabaseUrl = process.env.REACT_APP_SUPABASE_URL || 'https://fvrueabzpinhlzyrnhne.supabase.co';
+          const authToken = process.env.REACT_APP_SUPABASE_ANON_KEY;
+          
+          console.log('Making request to:', `${supabaseUrl}/functions/v1/create-checkout-session`);
+          console.log('Auth token present:', !!authToken);
+          
+          const response = await fetch(`${supabaseUrl}/functions/v1/create-checkout-session`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${authToken}`
+            },
+            body: JSON.stringify({
+              clientId,
+              planId,
+              billingInterval
+            })
+          });
+
+          console.log('Response status:', response.status);
+          console.log('Response ok:', response.ok);
+
+          if (response.ok) {
+            const data = await response.json();
+            console.log('Response data:', data);
+            if (data.url) {
+              window.location.href = data.url;
+              return;
+            }
+          }
+          
+          // If Edge Function fails, fall back to payment link
+          throw new Error('Edge Function unavailable');
+          
+        } catch (edgeFunctionError) {
+          console.log('Edge Function failed, using fallback:', edgeFunctionError.message);
+          
+          // Fallback: Direct Stripe Payment Link
+          // You can create these in your Stripe Dashboard under "Payment Links"
+          const baseUrl = window.location.origin;
+          const paymentLinks = {
+            'pro-monthly': 'https://buy.stripe.com/test_7sI9AUdVm7nF1QA7ss', // Replace with your actual payment link
+            'pro-yearly': 'https://buy.stripe.com/test_7sI9AUdVm7nF1QA7ss'   // Replace with your actual payment link
+          };
+          
+          const linkKey = `${planId}-${billingInterval}`;
+          const paymentLink = paymentLinks[linkKey] || paymentLinks['pro-monthly'];
+          
+          // Add client info to the payment link
+          const fullPaymentLink = `${paymentLink}?client_reference_id=${clientId}`;
+          
+          window.location.href = fullPaymentLink;
+        }
       }
 
     } catch (error) {
